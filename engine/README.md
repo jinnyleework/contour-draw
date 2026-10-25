@@ -118,7 +118,7 @@ did before it had an intensity. Anything that is not a number is 0.5; the rest i
 | crystal cluster | how tall the crystals grow | 0.65 | 1 | 1.3 |
 | honeycomb | how high the honey rises in each cell | 0.08 | 0.15 | 0.21 |
 | card fan | how wide the fan opens | 0.18 rad per card | 0.28 | 0.4 |
-| tile stack | how far each tile slides past the one below | 0.04 | 0.08 | 0.12 |
+| tile stack | how far the hovered tile lifts (the tiles above rise twice as far) | 0.06 | 0.1 | 0.15 |
 | hover split | how wide the gap opens (a fraction of its cap) | 0.35 | 0.7 | 1 |
 
 A scene reads it as the third argument of `step`; the engine keeps `MOTION.intensity` (animate) and `SPLIT.intensity`
