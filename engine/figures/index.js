@@ -1,0 +1,36 @@
+import { rocket } from "./rocket.js";
+import { camera } from "./camera.js";
+import { binoculars } from "./binoculars.js";
+import { lightbulb } from "./lightbulb.js";
+import { recordPlayer } from "./record.js";
+import { lighthouse } from "./lighthouse.js";
+import { toaster } from "./toaster.js";
+import { vaultDoor } from "./vault-door.js";
+import { carousel } from "./carousel.js";
+import { pocketWatch } from "./pocket-watch.js";
+import { telescope } from "./telescope.js";
+import { jackInTheBox } from "./jack-in-the-box.js";
+import { windmill } from "./windmill.js";
+import { gyroscope } from "./gyroscope.js";
+import { umbrella } from "./umbrella.js";
+import { periscopeSubmarine } from "./periscope-submarine.js";
+import { seedling } from "./seedling.js";
+import { drawerChest } from "./drawer-chest.js";
+import { bellowsCamera } from "./bellows-camera.js";
+import { percolator } from "./percolator.js";
+import { terrain } from "./terrain.js";
+import { volcano } from "./volcano.js";
+import { rippleTank } from "./ripple-tank.js";
+import { tilePyramid } from "./tile-pyramid.js";
+import { spiralStair } from "./spiral-stair.js";
+import { ringTower } from "./ring-tower.js";
+import { funnel } from "./funnel.js";
+import { hourglass } from "./hourglass.js";
+import { whirlpool } from "./whirlpool.js";
+import { crystalCluster } from "./crystal-cluster.js";
+import { honeycomb } from "./honeycomb.js";
+import { cardFan } from "./card-fan.js";
+import { tileStack } from "./tile-stack.js";
+
+/** every figure the page offers, in the order of its buttons */
+export const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack };

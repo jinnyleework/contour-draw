@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contour Actions</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0b0c; color: #8a8a90; font: 11px/1 ui-monospace, Menlo, monospace; }
+  body { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; }
+  nav { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 12px 14px; }
+  .controls { display: flex; flex-direction: column; gap: 8px; padding: 10px 14px 14px; }
+  .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+  .group .head { min-width: 11ch; color: #5d5d64; }
+  button { font: inherit; padding: 8px 10px; background: none; color: #8a8a90; border: 1px solid #29292d; border-radius: 6px; cursor: pointer; }
+  button[aria-pressed="true"] { color: #e6e6e6; border-color: #e6e6e6; }
+  svg { height: 100%; width: auto; max-width: 100%; aspect-ratio: 1 / 1; min-height: 0; margin: auto; display: block; overflow: hidden; }
+  .fill { fill: #0b0b0c; stroke: none; fill-rule: evenodd; }
+  .ln { fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  label { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { width: 120px; accent-color: #e6e6e6; }
+  output { min-width: 4ch; color: #e6e6e6; }
+  #hint { margin-left: auto; color: #5d5d64; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<svg id="art" viewBox="0 0 600 600" aria-label="An object performing its action, drawn as stacked slices"></svg>
+<div class="controls" id="controls"></div>
+<script>
+/*ENGINE*/
+
+/* ---------- the page: object buttons, rule A sliders, the hover split ---------- */
+const svg = document.getElementById("art"), nav = document.getElementById("nav"), controls = document.getElementById("controls");
+const player = createPlayer(svg, SCENES);
+const show = (name) => { player.show(name); nav.querySelectorAll("button[data-o]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.o === name))); updateHint(); };
+const updateHint = () => { hint.textContent = player.mode === "split" ? "move up and down: the layers part at the cursor" : player.hint; };
+const button = (parent, text, onclick) => { const b = document.createElement("button"); b.textContent = text; b.onclick = onclick; parent.appendChild(b); return b; };
+for (const name of player.names()) button(nav, name, () => show(name)).dataset.o = name;
+const hint = document.createElement("span"); hint.id = "hint"; nav.appendChild(hint);
+button(nav, "demo", () => player.demo());
+
+/* a row of sliders over one settings object: they edit it in place and the player reads it on the next frame */
+const group = (label) => { const g = document.createElement("div"), h = document.createElement("span"); g.className = "group"; h.className = "head"; h.textContent = label; g.append(h); controls.appendChild(g); return g; };
+function slider(parent, target, key, label, [min, max, step], digits = 2) {
+  const l = document.createElement("label"), i = document.createElement("input"), o = document.createElement("output");
+  Object.assign(i, { type: "range", min, max, step, value: target[key] }); i.dataset.key = key; o.textContent = (+target[key]).toFixed(digits);
+  i.oninput = () => { target[key] = +i.value; o.textContent = (+i.value).toFixed(digits); player.redraw(); };
+  l.append(label, i, o); parent.appendChild(l);
+}
+const turn = group("view");
+slider(turn, VIEW, "azimuth", "turn", [-180, 180, 1], 0);
+slider(turn, VIEW, "tilt", "tilt", [0.15, 0.95, 0.01]);
+
+const look = group("look");
+for (const [key, label, range] of [["base", "weight", [0, 2, 0.05]], ["contrast", "contrast", [0, 1, 0.05]], ["depth", "depth cue", [0, 1, 0.05]], ["fade", "height fade", [0, 1, 0.05]]]) slider(look, RULE, key, label, range);
+
+/* intensity, the same control twice: three buttons and a slider that edit one 0 to 1 number and stay in step with each other */
+function intensityControl(parent, target, label) {
+  const buttons = Object.keys(LEVELS).map((n) => button(parent, n, () => { target.intensity = LEVELS[n]; sync(); player.redraw(); }));
+  const l = document.createElement("label"), i = document.createElement("input"), o = document.createElement("output");
+  Object.assign(i, { type: "range", min: 0, max: 1, step: 0.05, value: target.intensity });
+  i.oninput = () => { target.intensity = +i.value; sync(); player.redraw(); };
+  l.append(label, i, o); parent.appendChild(l);
+  function sync() {
+    buttons.forEach((b) => b.setAttribute("aria-pressed", String(Math.abs(LEVELS[b.textContent] - target.intensity) < 0.01)));
+    i.value = target.intensity; o.textContent = target.intensity.toFixed(2);
+  }
+  sync();
+}
+
+const hover = group("hover");
+const modes = ["animate", "split"].map((m) => button(hover, m, () => { player.setMode(m); syncModes(); }));
+const syncModes = () => { modes.forEach((b) => b.setAttribute("aria-pressed", String(b.textContent === player.mode))); updateHint(); };
+/* one intensity for both modes: how strongly the figure answers the cursor. The engine keeps them as two numbers. */
+const both = { get intensity() { return MOTION.intensity; }, set intensity(v) { MOTION.intensity = v; SPLIT.intensity = v; } };
+intensityControl(hover, both, "intensity");
+slider(hover, SPLIT, "radius", "split reach", [20, 140, 5], 0);
+
+window.player = player;                                            // for stills: player.seek(4.0)
+show(player.current);
+syncModes();
+</script>
+</body>
+</html>
