@@ -119,6 +119,10 @@ did before it had an intensity. Anything that is not a number is 0.5; the rest i
 | honeycomb | how high the honey rises in each cell | 0.08 | 0.15 | 0.21 |
 | card fan | how wide the fan opens | 0.18 rad per card | 0.28 | 0.4 |
 | tile stack | how far the hovered tile lifts (the tiles above rise twice as far) | 0.06 | 0.1 | 0.15 |
+| typewriter | how many letters it types (the carriage steps once for each) | 4 | 8 | 12 |
+| printer | how much of the page comes out; how many passes the head makes | a third; 2 | most; 4 | all; 6 |
+| gear train | how far the largest gear turns | half a turn | one turn | two turns |
+| cassette deck | how much tape winds across | a third | two thirds | all of it |
 | hover split | how wide the gap opens (a fraction of its cap) | 0.35 | 0.7 | 1 |
 
 A scene reads it as the third argument of `step`; the engine keeps `MOTION.intensity` (animate) and `SPLIT.intensity`
@@ -166,7 +170,7 @@ tap reads as a look and not a flash. The drawing sets `touch-action: none`, so t
 | `src/painter.js` | sheets to svg markup, rule A |
 | `src/scene.js` | a scene at time t |
 | `src/player.js` | the only file that touches the page |
-| `figures/` | rocket, camera, binoculars, lightbulb, record player, lighthouse, toaster, vault door, carousel, pocket watch, telescope, jack-in-the-box, windmill, gyroscope, umbrella, periscope submarine, seedling, drawer chest, bellows camera, percolator, terrain, volcano, ripple tank, tile pyramid, spiral stair, ring tower, funnel, hourglass, whirlpool, crystal cluster, honeycomb, card fan, tile stack |
+| `figures/` | rocket, camera, binoculars, lightbulb, record player, lighthouse, toaster, vault door, carousel, pocket watch, telescope, jack-in-the-box, windmill, gyroscope, umbrella, periscope submarine, seedling, drawer chest, bellows camera, percolator, terrain, volcano, ripple tank, tile pyramid, spiral stair, ring tower, funnel, hourglass, whirlpool, crystal cluster, honeycomb, card fan, tile stack, typewriter, printer, gear train, cassette deck |
 | `tools/build.mjs` | joins the modules and every figure in `figures/` into `dist/actions.html` |
 | `tools/check.mjs` | checks a figure: its declaration, `step()`, that its shapes close inside their boxes, the cursor mapping, intensity, frame size and speed |
 | `tools/new-figure.mjs` | writes a working template figure and registers it (`--remove` undoes it) |
