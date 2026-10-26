@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>skill · contour draw</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="site.css">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"; } catch {}</script>
+<script>
+  // the page starts empty and draws itself in (assets/reveal.js); if that never runs, show it as it is
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.documentElement.classList.add("reveal");
+    setTimeout(() => window.revealed || document.documentElement.classList.remove("reveal"), 3000);
+  }
+</script>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="index.html" aria-label="Home"><img src="assets/logo-slices.svg" alt=""></a>
+  <nav aria-label="Main">
+    <a href="library.html">library</a>
+    <a href="skill.html" aria-current="page">skill</a>
+    <a href="info.html">start</a>
+    <a class="tech" href="technicals.html">technicals</a>
+  </nav>
+</header>
+<main class="doc">
+  <div class="lib-intro">
+    <h1><span><img src="assets/icon-skill.svg" alt=""></span>skill</h1>
+    <p><code>draw-contour</code>: ask Claude Code for an object in plain words, and get back a figure drawn as stacked contour slices that answers the cursor, checked and looked at</p>
+  </div>
+  <div class="doc-main">
+    <nav class="lib-toc" aria-label="Sections"><ul id="toc"></ul></nav>
+    <div class="doc-body">
+
+      <section class="sec" id="install" data-title="install">
+        <h2><span class="no">01</span><span>install</span><span class="tag">once</span><small>a project skill: it comes with the repo</small></h2>
+        <p>The skill lives in the project, at <code>.claude/skills/draw-contour/</code>, so Claude Code picks it up in the project folder with nothing to install. To use it from any folder, copy it to your own skills:</p>
+        <div class="code"><div class="code-head"><em>shell</em><button type="button">copy ⧉</button></div><pre>cp -R ~/Playground/visualiser/.claude/skills/draw-contour ~/.claude/skills/</pre></div>
+        <p class="note">either way it works on the engine at ~/Playground/visualiser/engine; if that folder is missing, it says so and stops</p>
+      </section>
+
+      <section class="sec" id="start" data-title="start">
+        <h2><span class="no">02</span><span>start</span><span class="tag">2 ways in</span><small>bring nothing, or an idea</small></h2>
+        <div class="cells wide">
+          <div><em>a</em><b>/draw-contour</b><span>Asks what the object is and what the cursor should do to it, then carries on as below.</span></div>
+          <div><em>b</em><b>/draw-contour a toaster that pops as you move up it</b><span>Offers two or three concepts, one line each, and draws the one you pick. Every figure's sheet in the <a href="library.html">library</a> has a prompt to start one in its vein: open a figure, then <i>prompt · copy</i>.</span></div>
+        </div>
+      </section>
+
+      <section class="sec" id="workflow" data-title="workflow">
+        <h2><span class="no">03</span><span>workflow</span><span class="tag">7 steps</span><small>what the skill does, in order; it stops for you at the concept</small></h2>
+        <div class="cells">
+          <div><em>00</em><b>orient</b><span>Reads the engine's README and the one example figure nearest the idea: one that rises, slides, or turns.</span></div>
+          <div><em>01</em><b>concept</b><span>Two or three, one line each: the object, which part moves and how, where the cursor drives it, what intensity changes, and its rest pose. You pick one.</span></div>
+          <div><em>02</em><b>scaffold</b><span><code>tools/new-figure.mjs</code> writes a working figure from a template and registers it.</span></div>
+          <div><em>03</em><b>build</b><span>Shapes as signed distance functions, cut along what moves. One file, about 80 lines; the engine, page and tools are never edited to make a figure work.</span></div>
+          <div><em>04</em><b>check</b><span><code>tools/check.mjs</code>: the shapes close inside their boxes, the cursor reaches both ends, intensity changes the picture, no NaN, frame size and speed. Then <code>npm test</code>.</span></div>
+          <div><em>05</em><b>look</b><span><code>tools/still.mjs</code> draws eight poses on one sheet: rest, halfway, full, low and high intensity, two turns and the split. Nothing is done until it is looked at.</span></div>
+          <div><em>06</em><b>hand over</b><span>Builds and publishes the engine's page, adds the figure to the intensity table and says what was checked and what was not.</span></div>
+        </div>
+      </section>
+
+      <section class="sec" id="tools" data-title="tools">
+        <h2><span class="no">04</span><span>tools</span><span class="tag">engine/tools</span><small>the skill runs these for you; they work from a shell too, from engine/</small></h2>
+        <div class="cells two">
+          <div><b>new-figure.mjs stamp</b><span>Starts a figure from a working template, and registers it (<code>--remove</code> undoes it).</span></div>
+          <div><b>check.mjs [stamp]</b><span>Checks a figure, or all of them: a FAIL stops you, a warn is for you to read.</span></div>
+          <div><b>still.mjs stamp</b><span>One PNG of eight poses: <code>dist/still-stamp.png</code>.</span></div>
+          <div><b>build.mjs</b><span>Joins the engine and every figure into <code>dist/actions.html</code>, one file that opens from disk.</span></div>
+          <div><b>publish.mjs</b><span>The same page in the form the Artifact host wants: one file per module.</span></div>
+        </div>
+        <p class="note">run as: node tools/… · this site's library builds from the same figures (node site/build.mjs)</p>
+      </section>
+
+      <section class="sec" id="rules" data-title="rules">
+        <h2><span class="no">05</span><span>rules</span><span class="tag">SKILL.md</span><small>what every concept and figure keeps</small></h2>
+        <div class="cells">
+          <div><em>1</em><b>one idea</b><span>One action the cursor scrubs from rest to full, not two.</span></div>
+          <div><em>2</em><b>rest is a drawing</b><span>Nothing moves until the pointer arrives, so the rest pose is what most people see.</span></div>
+          <div><em>3</em><b>a place to drive it</b><span>Up the figure, or across it, with a hint that says where.</span></div>
+          <div><em>4</em><b>no words</b><span>Identity comes from geometry, never lettering; the page's hint line is the only text.</span></div>
+          <div><em>5</em><b>one stroke</b><span>No colour, fill or shading: one ink in rule A's weights.</span></div>
+          <div><em>6</em><b>open means hollow</b><span>A drawer, lid or hatch that opens shows its inside.</span></div>
+          <div><em>7</em><b>face up</b><span>Slices are horizontal, so the face that matters lies flat.</span></div>
+          <div><em>8</em><b>height, not front</b><span>The painter orders by height alone: parts that must read as nearer never overlap on the page.</span></div>
+        </div>
+      </section>
+
+      <footer class="tblock">
+        <div><em>drawing</em>skill</div><div><em>sheet</em>02 / 04</div><div><em>figures</em><span id="t-count">33</span></div><div><em>engine</em>contour</div>
+        <div><em>skill</em>draw-contour</div><div><em>needs</em>node 18</div><div><em>hands over</em>html · artifact</div><div><em>install</em>project · folder</div>
+      </footer>
+    </div>
+  </div>
+</main>
+<script src="assets/contour-figures.js"></script>
+<script src="assets/theme.js"></script>
+<script src="assets/doc.js"></script>
+<script>document.getElementById("t-count").textContent = String(Object.keys(Contour.SCENES).length).padStart(2, "0");</script>
+<script src="assets/reveal.js"></script>
+</body>
+</html>

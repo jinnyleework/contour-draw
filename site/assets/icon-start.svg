@@ -1,0 +1,8 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="2.93333">
+  <!-- get started: a terminus (a circle with nothing coming in), the line leaving along its top, and the logo's turn
+       begun: in along the next circle's foot and three quarters of the way round, left open -->
+  <g transform="translate(3 -1.8)">
+    <circle cx="7.3333" cy="22.1333" r="4.3333"/>
+    <path d="M7.3333 17.8H18.6667A4.3333 4.3333 0 1 0 14.3333 13.4667"/>
+  </g>
+</svg>

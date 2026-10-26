@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>start · contour draw</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="site.css">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"; } catch {}</script>
+<script>
+  // the page starts empty and draws itself in (assets/reveal.js); if that never runs, show it as it is
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.documentElement.classList.add("reveal");
+    setTimeout(() => window.revealed || document.documentElement.classList.remove("reveal"), 3000);
+  }
+</script>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="index.html" aria-label="Home"><img src="assets/logo-slices.svg" alt=""></a>
+  <nav aria-label="Main">
+    <a href="library.html">library</a>
+    <a href="skill.html">skill</a>
+    <a href="info.html" aria-current="page">start</a>
+    <a class="tech" href="technicals.html">technicals</a>
+  </nav>
+</header>
+<main class="doc">
+  <div class="lib-intro">
+    <h1><span><img src="assets/icon-start.svg" alt=""></span>get started</h1>
+    <p>one engine and one skill for Claude Code: get the project, open the figures, then ask for your first one</p>
+  </div>
+  <div class="doc-main">
+    <nav class="lib-toc" aria-label="Sections"><ul id="toc"></ul></nav>
+    <div class="doc-body">
+
+      <section class="sec" id="project" data-title="get the project">
+        <h2><span class="no">01</span><span>get the project</span><span class="tag">once</span><small>the repo is private, so your git must already reach it</small></h2>
+        <p>The skill works on the engine in this project, at <code>~/Playground/visualiser</code>, so clone it there:</p>
+        <div class="code"><div class="code-head"><em>shell</em><button type="button">copy ⧉</button></div><pre>git clone https://github.com/jinnyleework/contour-draw.git ~/Playground/visualiser</pre></div>
+        <p>It needs Node 18 or later, and nothing else: the engine is plain JavaScript modules with no dependencies.</p>
+      </section>
+
+      <section class="sec" id="open" data-title="open the figures">
+        <h2><span class="no">02</span><span>open the figures</span><span class="tag">engine</span><small>every figure on one page that opens straight from disk</small></h2>
+        <div class="code"><div class="code-head"><em>shell</em><button type="button">copy ⧉</button></div><pre>cd ~/Playground/visualiser/engine
+npm test
+npm run build
+open dist/actions.html</pre></div>
+        <p>Or browse them here, in the <a href="library.html">library</a>: hover a figure to drive it, open it to turn it, retune its lines and export it.</p>
+      </section>
+
+      <section class="sec" id="contour" data-title="draw a figure">
+        <h2><span class="no">03</span><span>draw a figure</span><span class="tag">draw-contour</span><small>one object as stacked slices, answering the cursor</small></h2>
+        <p>Open Claude Code in the project and ask for a figure in plain words. The skill offers two or three concepts, draws the one you pick on the engine, checks it, looks at it and hands it over.</p>
+        <div class="code"><div class="code-head"><em>shell</em><button type="button">copy ⧉</button></div><pre>cd ~/Playground/visualiser && claude</pre></div>
+        <div class="code"><div class="code-head"><em>first prompt</em><button type="button">copy ⧉</button></div><pre>/draw-contour a lighthouse whose beam sweeps as you move across it</pre></div>
+        <p class="note">more on the <a href="skill.html">skill</a> page</p>
+      </section>
+
+      <footer class="tblock">
+        <div><em>drawing</em>get started</div><div><em>sheet</em>03 / 04</div><div><em>skills</em>01</div><div><em>repo</em>contour-draw</div>
+        <div><em>runs in</em>claude code</div><div><em>needs</em>node 18</div><div><em>engine</em>engine/</div><div><em>ink</em>one stroke</div>
+      </footer>
+    </div>
+  </div>
+</main>
+<script src="assets/theme.js"></script>
+<script src="assets/doc.js"></script>
+<script src="assets/reveal.js"></script>
+</body>
+</html>

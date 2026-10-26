@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>library · contour draw</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="site.css">
+<script>try { document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"; } catch {}</script>
+<script>
+  // the page starts empty and draws itself in (assets/reveal.js); if that never runs, show it as it is
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.documentElement.classList.add("reveal");
+    setTimeout(() => window.revealed || document.documentElement.classList.remove("reveal"), 3000);
+  }
+</script>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="index.html" aria-label="Home"><img src="assets/logo-slices.svg" alt=""></a>
+  <nav aria-label="Main">
+    <a href="library.html" aria-current="page">library</a>
+    <a href="skill.html">skill</a>
+    <a href="info.html">start</a>
+    <a class="tech" href="technicals.html">technicals</a>
+  </nav>
+</header>
+<main class="lib">
+  <div class="lib-intro">
+    <h1><span><img src="assets/icon-library.svg" alt=""></span>library</h1>
+    <p>every figure drawn on the contour engine: an object cut into stacked slices that answers the cursor. Hover one to drive it</p>
+  </div>
+  <label class="autoplay"><input class="switch" type="checkbox" id="play" role="switch"> auto-play animations</label>
+  <div class="lib-main">
+    <nav class="lib-toc" aria-label="Sections"><ul id="toc"></ul></nav>
+    <div class="lib-body" id="shelves"></div>
+  </div>
+</main>
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" tabindex="-1" aria-label="Figure details" aria-hidden="true" inert>
+  <div class="panel-head"><span class="no" id="p-no"></span><span><b id="p-name"></b><span class="read" id="p-read">rest</span></span><button class="panel-x" id="p-close" type="button" aria-label="Close">×</button></div>
+  <div class="panel-fig" id="p-fig"></div>
+  <p class="panel-hint" id="p-hint"></p>
+  <div class="panel-body">
+    <h3>view</h3>
+    <label class="scrub">turn<input type="range" id="s-azimuth" data-of="view" data-key="azimuth" data-unit="°" data-digits="0" min="-180" max="180" step="1"><output></output></label>
+    <label class="scrub">tilt<input type="range" id="s-tilt" data-of="view" data-key="tilt" min="0.15" max="0.95" step="0.01"><output></output></label>
+    <h3>lines</h3>
+    <label class="scrub">weight<input type="range" id="s-base" data-of="rule" data-key="base" min="0" max="2" step="0.05"><output></output></label>
+    <label class="scrub">contrast<input type="range" id="s-contrast" data-of="rule" data-key="contrast" min="0" max="1" step="0.05"><output></output></label>
+    <h3>depth</h3>
+    <label class="scrub">depth cue<input type="range" id="s-depth" data-of="rule" data-key="depth" min="0" max="1" step="0.05"><output></output></label>
+    <label class="scrub">height fade<input type="range" id="s-fade" data-of="rule" data-key="fade" min="0" max="1" step="0.05"><output></output></label>
+    <h3>hover</h3>
+    <label class="scrub">intensity<input type="range" id="s-intensity" data-of="both" data-key="intensity" min="0" max="1" step="0.05"><output></output></label>
+    <label class="scrub">split reach<input type="range" id="s-radius" data-of="split" data-key="radius" data-unit="px" data-digits="0" min="20" max="140" step="5" disabled><output></output></label>
+  </div>
+  <!-- the foot is the sheet's title block: the drawing and its view switches, then a row of cells that are its actions -->
+  <div class="panel-foot">
+    <div><em>drawing</em><span id="t-name"></span></div>
+    <label class="tog"><em>hover</em><span><input type="checkbox" id="f-split" role="switch"><b>animate</b></span></label>
+    <label class="tog"><em>play</em><span><input type="checkbox" id="f-play" role="switch"><b>off</b></span></label>
+    <label class="tog"><em>theme</em><span><input type="checkbox" id="f-dark" role="switch"><b id="t-theme">light</b></span></label>
+    <button type="button" id="p-prompt"><em>prompt</em><span>copy ⧉</span></button><button type="button" id="p-svg"><em>export</em><span>svg ↓</span></button><button type="button" id="p-png"><em>export</em><span>png ↓</span></button><button type="button" id="p-reset"><em>rev</em><span>reset ↺</span></button>
+  </div>
+</aside>
+<script src="assets/contour-figures.js"></script>
+<script src="assets/figure.js"></script>
+<script src="assets/theme.js"></script>
+<script>
+(() => {
+  // the library's sections, in order; a figure goes on one shelf by its name in the engine (engine/figures/index.js).
+  // A figure the shelves do not name goes on the last one, so a new figure shows up without editing this page.
+  const SHELVES = [
+    { id: "machines", title: "machines", sub: "things with a mechanism: the cursor runs what the real one does",
+      figures: ["rocket", "camera", "binoculars", "lightbulb", "record player", "lighthouse", "toaster", "vault door", "telescope", "periscope submarine", "bellows camera", "percolator", "windmill", "gyroscope", "typewriter", "printer", "gear train", "cassette deck"] },
+    { id: "keepsakes", title: "keepsakes", sub: "small things that open, wind, grow or spin up under the hand",
+      figures: ["carousel", "pocket watch", "jack in the box", "umbrella", "seedling", "drawer chest"] },
+    { id: "forms", title: "forms", sub: "landscapes and shapes for ideas: rising, draining, twisting, stacking",
+      figures: ["terrain", "volcano", "ripple tank", "tile pyramid", "spiral stair", "ring tower", "funnel", "hourglass", "whirlpool", "crystal cluster", "honeycomb", "card fan", "tile stack"] },
+  ];
+  const { SCENES, RULE, VIEW, SPLIT, MOTION } = window.Contour;
+  const placed = new Set(SHELVES.flatMap((s) => s.figures));
+  SHELVES.at(-1).figures.push(...Object.keys(SCENES).filter((n) => !placed.has(n)));
+  // small tiles draw lighter lines than the full page the figures were tuned on
+  const TILE_WEIGHT = 0.6;
+  const $ = (id) => document.getElementById(id);
+  const shelves = $("shelves"), toc = $("toc"), handles = [];
+  let open = null;   // { name, tile, handle }
+
+  // drawing numbers: a section is 01, its figures 01.01, 01.02…; every tile is framed by crop marks rather than a border
+  const two = (n) => String(n).padStart(2, "0");
+  const CROPS = '<i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>';
+  let total = 0;
+  SHELVES.forEach((s, si) => {
+    const names = s.figures.filter((n) => SCENES[n]);
+    total += names.length;
+    const sec = document.createElement("section");
+    sec.className = "shelf"; sec.id = s.id;
+    sec.innerHTML = `<h2><span class="no">${two(si + 1)}</span><span>${s.title}</span><span class="count">${two(names.length)} figures</span><small>${s.sub}</small></h2><div class="tiles"></div>`;
+    const tiles = sec.querySelector(".tiles");
+    names.forEach((name, fi) => {
+      const tile = document.createElement("article");
+      tile.className = "tile is-filled";
+      tile.tabIndex = 0;
+      tile.innerHTML = `<span class="read">rest</span><div class="fig"></div>${CROPS}<span class="name"></span><span class="fno">${two(si + 1)}.${two(fi + 1)}</span>`;
+      tile.querySelector(".name").textContent = name;
+      tiles.appendChild(tile);
+      const out = tile.querySelector(".read");
+      handles.push(Contour.mount(tile.querySelector(".fig"), name, { weight: TILE_WEIGHT }));
+      tile.addEventListener("pointerenter", () => (out.textContent = "live"));
+      tile.addEventListener("pointerleave", () => (out.textContent = "rest"));
+      tile.addEventListener("click", () => show(name, tile));
+      tile.addEventListener("keydown", (e) => { if (e.key === "Enter") show(name, tile); });
+    });
+    // round the shelf up to a full row with an empty slot for the next figure
+    if (names.length % 2) tiles.insertAdjacentHTML("beforeend", `<div class="tile is-empty" aria-hidden="true">${CROPS}</div>`);
+    shelves.appendChild(sec);
+    toc.insertAdjacentHTML("beforeend", `<li><a href="#${s.id}">${s.title}</a></li>`);
+  });
+
+  // the title block that closes the sheet
+  shelves.insertAdjacentHTML("beforeend", `<footer class="tblock">
+    <div><em>drawing</em>library</div><div><em>sheet</em>01 / 04</div><div><em>figures</em>${two(total)}</div><div><em>scale</em>1 : 1</div>
+    <div><em>project</em>contour draw</div><div><em>tile</em>264 × 264</div><div><em>units</em>px</div><div><em>formats</em>svg · png</div>
+  </footer>`);
+
+  // the section list follows the scroll
+  const links = [...toc.querySelectorAll("a")];
+  const mark = (id) => links.forEach((a) => a.setAttribute("aria-current", String(a.hash === "#" + id)));
+  mark(SHELVES[0].id);
+  const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && mark(e.target.id)), { rootMargin: "-30% 0px -60% 0px" });
+  document.querySelectorAll(".shelf").forEach((el) => io.observe(el));
+
+  // the ruler's loading state: the section being read (the last one whose top has passed 30% down the window) fills
+  // its stretch of the rule, from its own tick to the next section's, as you scroll through it
+  const secs = [...document.querySelectorAll(".shelf")], items = [...toc.children];
+  let queued = false;
+  const progress = () => {
+    queued = false;
+    const at = innerHeight * 0.3, tops = secs.map((s) => s.getBoundingClientRect().top);
+    const i = Math.max(0, tops.findLastIndex((t) => t <= at));
+    const end = secs[i + 1] ? tops[i + 1] : secs[i].getBoundingClientRect().bottom;
+    const p = Math.max(0, Math.min(1, (at - tops[i]) / (end - tops[i])));
+    const tick = (li) => li.offsetTop + li.offsetHeight / 2;
+    const from = tick(items[i]), to = items[i + 1] ? tick(items[i + 1]) : toc.offsetHeight;
+    toc.style.setProperty("--from", `${from}px`);
+    toc.style.setProperty("--to", `${from + (to - from) * p}px`);
+  };
+  addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(progress); } }, { passive: true });
+  addEventListener("resize", progress);
+  progress();
+
+  // auto-play: every tile plays its action over and over; off, they wait for the cursor again
+  const play = $("play");
+  play.addEventListener("change", () => handles.forEach((h) => h.looping(play.checked)));
+
+  /* ---- the details panel: the figure large, with its own copy of the engine's settings to retune ---- */
+
+  const settings = () => ({ rule: { ...RULE }, view: { ...VIEW }, split: { ...SPLIT }, motion: { ...MOTION } });
+  let tuned = settings();
+  // one intensity for both hover modes, as the engine's own page has it
+  const of = (el) => el.dataset.of === "both" ? { get intensity() { return tuned.motion.intensity; }, set intensity(v) { tuned.motion.intensity = v; tuned.split.intensity = v; } } : tuned[el.dataset.of];
+  const SCRUBS = [...document.querySelectorAll(".panel-body input[type=range]")];
+  const paint = () => {
+    for (const el of SCRUBS) {
+      el.value = of(el)[el.dataset.key];
+      el.style.setProperty("--p", `${((el.value - el.min) / (el.max - el.min)) * 100}%`);
+      el.nextElementSibling.textContent = (+el.value).toFixed(+(el.dataset.digits ?? 2)) + (el.dataset.unit ?? "");
+    }
+  };
+  SCRUBS.forEach((el) => el.addEventListener("input", () => { of(el)[el.dataset.key] = +el.value; paint(); open?.handle.redraw(); }));
+
+  const panel = $("panel"), host = $("p-fig");
+  function show(name, tile) {
+    close(false);
+    open = { name, tile };
+    tile.classList.add("is-open");
+    const no = tile.querySelector(".fno").textContent;
+    $("p-name").textContent = $("t-name").textContent = name; $("p-no").textContent = no;
+    $("p-hint").textContent = SCENES[name].hint ?? ""; $("p-read").textContent = "rest";
+    open.handle = Contour.mount(host, name, tuned);
+    open.handle.show();
+    open.handle.setMode($("f-split").checked ? "split" : "animate");
+    open.handle.looping($("f-play").checked);
+    host.onpointerenter = () => ($("p-read").textContent = "live");
+    host.onpointerleave = () => ($("p-read").textContent = "rest");
+    paint();
+    panel.inert = false; panel.setAttribute("aria-hidden", "false");
+    document.body.classList.add("has-panel");
+    panel.focus({ preventScroll: true });
+  }
+  function close(restore = true) {
+    if (!open) return;
+    open.handle.destroy();
+    open.tile.classList.remove("is-open");
+    if (restore) open.tile.focus({ preventScroll: true });
+    open = null;
+    panel.inert = true; panel.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("has-panel");
+  }
+  $("p-close").addEventListener("click", () => close());
+  $("scrim").addEventListener("click", () => close());
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) close(); });
+
+  $("f-split").addEventListener("change", (e) => {
+    const m = e.target.checked ? "split" : "animate";
+    e.target.nextElementSibling.textContent = m;
+    $("s-radius").disabled = m !== "split";
+    open?.handle.setMode(m);
+  });
+  $("f-play").addEventListener("change", (e) => { e.target.nextElementSibling.textContent = e.target.checked ? "on" : "off"; open?.handle.looping(e.target.checked); });
+  $("f-dark").addEventListener("change", (e) => { const t = e.target.checked ? "dark" : "light"; host.classList.toggle("is-dark", e.target.checked); $("t-theme").textContent = t; });
+  // the panel's dark switch starts where the site's light pull left it, and follows it
+  const follow = (t) => { const d = $("f-dark"); if (d.checked !== (t === "dark")) { d.checked = t === "dark"; d.dispatchEvent(new Event("change")); } };
+  follow(document.documentElement.dataset.theme);
+  addEventListener("themechange", (e) => follow(e.detail));
+  // reset puts the engine's defaults back into the same objects, so the open figure keeps them
+  $("p-reset").addEventListener("click", () => {
+    const d = settings();
+    for (const k of Object.keys(tuned)) Object.assign(tuned[k], d[k]);
+    paint(); open?.handle.redraw();
+  });
+
+  // what the panel hands over: the prompt that starts a new figure in the same vein, and a still as svg or png
+  const prompt = (name) => `/draw-contour a new figure in the vein of the ${name}: ${SCENES[name].hint}`;
+  $("p-prompt").addEventListener("click", async (e) => {
+    const say = e.currentTarget.querySelector("span");
+    try { await navigator.clipboard.writeText(prompt(open.name)); } catch { return; }
+    say.textContent = "copied ✓"; setTimeout(() => (say.textContent = "copy ⧉"), 1400);
+  });
+  const download = (href, name) => { const a = Object.assign(document.createElement("a"), { href, download: name }); a.click(); };
+  // a still of the figure as it is now, its styles resolved so the file stands alone
+  const still = () => {
+    const svg = host.querySelector("svg"), copy = svg.cloneNode(true), src = svg.querySelectorAll("*"), dst = copy.querySelectorAll("*");
+    src.forEach((n, i) => { const s = getComputedStyle(n); for (const p of ["fill", "stroke", "stroke-linecap", "stroke-linejoin", "fill-rule"]) dst[i].style.setProperty(p, s.getPropertyValue(p)); });
+    copy.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+    copy.setAttribute("width", "600"); copy.setAttribute("height", "600");
+    return new XMLSerializer().serializeToString(copy);
+  };
+  $("p-svg").addEventListener("click", () => download(URL.createObjectURL(new Blob([still()], { type: "image/svg+xml" })), `${open.name.replaceAll(" ", "-")}.svg`));
+  $("p-png").addEventListener("click", () => {
+    const k = 2, img = new Image(), name = open.name.replaceAll(" ", "-"), dark = $("f-dark").checked;
+    img.onload = () => {
+      const c = Object.assign(document.createElement("canvas"), { width: 600 * k, height: 600 * k }), g = c.getContext("2d");
+      g.fillStyle = dark ? "#161616" : "#ffffff"; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob((b) => download(URL.createObjectURL(b), `${name}.png`));
+    };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(still());
+  });
+})();
+</script>
+<script src="assets/reveal.js"></script>
+</body>
+</html>

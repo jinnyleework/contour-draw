@@ -1,0 +1,6 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="2.4">
+  <!-- the mark: three slices of one object, one above the other, narrowing as they rise -->
+  <ellipse cx="16" cy="24" rx="13" ry="3.8"/>
+  <ellipse cx="16" cy="16" rx="9.6" ry="2.9"/>
+  <ellipse cx="16" cy="8.4" rx="6" ry="2"/>
+</svg>

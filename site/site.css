@@ -1,0 +1,402 @@
+/* contour draw: one stylesheet for every page. Copied from the draw-engine site (jinny-lee-1/draw-engine), with its
+   Orchestro pieces swapped for the contour engine's (the end of this file). */
+:root {
+  --text-base: #171717; --text-subtle: #646464; --text-disabled: #b4b4b4;
+  --surface-base: #f8f8f8; --page: #ffffff; --border: #dddddd; --placeholder: #d9d9d9;
+  --blue-500: #007bff; --radius-md: 8px; --radius-lg: 12px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --mono: "Geist Mono", ui-monospace, Menlo, monospace;
+}
+/* dark: the lights pulled off (assets/theme.js). The page is the figures' dark ground, so they sit on it unframed */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --text-base: #ededed; --text-subtle: #9a9a9a; --text-disabled: #5e5e5e;
+  --surface-base: #1f1f1f; --page: #161616; --border: #2e2e2e; --placeholder: #333333;
+  --raised: #1b1b1b; --hover: #262626; --hairline: rgba(255, 255, 255, 0.08); --shadow: rgba(0, 0, 0, 0.4);
+}
+:root { --raised: #fdfdfd; --hover: #f0f0f0; --hairline: rgba(221, 221, 221, 0.6); --shadow: rgba(31, 31, 31, 0.06); }
+body { transition: background 320ms var(--ease-out), color 320ms var(--ease-out); }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+/* the page stops at its top and bottom: no rubber-band overscroll past either */
+html, body { overscroll-behavior: none; }
+body { background: var(--page); color: var(--text-base); font: 400 14px/1.45 Inter, ui-sans-serif, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+a { color: inherit; }
+/* the pointers, each with its hot spot and the system's as a fallback, inlined so a new page has them as soon as this
+   stylesheet is in (drawn on the draw-engine site's Orchestro engine, and copied from it) */
+:root {
+  --cursor: url("data:image/svg+xml,%3Csvg viewBox=%220 0 14 20%22 width=%2214%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M12.5 10.49L7.04 10.49L7.04 12.48L12.5 12.48Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M4.55 11.45L0.63 15.18L0.63 17.17L4.55 13.44Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M7.14 17.38L4.55 11.45L4.55 13.44L7.14 19.38Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M9.63 16.33L7.14 17.38L7.14 19.38L9.63 18.32Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M12.5 10.49L7.04 10.49L9.63 16.33L7.14 17.38L4.55 11.45L0.63 15.18L0.63 0.63Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M12.5 9.86L7.04 9.86M8.81 15.85L6.32 16.9M8.37 17.25L5.78 11.31M3.44 11.15L-0.49 14.89%22 fill=%22none%22 stroke=%22rgb(255, 255, 255)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M7.1 10.49L9.09 12.48M8.79 10.49L10.78 12.48M10.49 10.49L12.48 12.48M12.19 10.49L12.5 10.8M7.14 19.02L7.39 19.27M7.18 17.37L8.58 18.76M8.38 16.86L9.63 18.11M9.57 16.36L9.63 16.42M6.86 18.74L7.14 19.02M5.55 15.73L7.09 17.27M4.55 13.04L5.78 14.26M0.62 15.9L1.28 16.55M1.13 14.7L2.15 15.72M2 13.88L3.02 14.9M2.87 13.05L3.89 14.07M3.74 12.22L4.55 13.04%22 fill=%22none%22 stroke=%22rgb(210, 210, 210)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M12.5 10.49L7.04 10.49M9.63 16.33L7.14 17.38M7.14 17.38L4.55 11.45M7.14 17.38L7.14 19.38M4.55 11.45L0.63 15.18M4.55 11.45L4.55 13.44%22 fill=%22none%22 stroke=%22rgb(168, 168, 168)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M12.5 12.48L7.92 12.48M12.5 10.49L12.5 12.48M7.04 10.49L9.63 16.33M9.63 18.32L7.14 19.38M9.63 16.33L9.63 18.32M7.14 19.38L4.55 13.44M4.55 13.44L0.63 17.17M0.63 15.18L0.63 0.63M0.63 15.18L0.63 17.17M0.63 0.63L12.5 10.49%22 fill=%22none%22 stroke=%22rgb(85, 85, 85)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 1 1, default;
+  --cursor-pointer: url("data:image/svg+xml,%3Csvg viewBox=%220 0 15 20%22 width=%2215%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M0.72 10.53L0.63 10.05L0.63 11.74L0.72 12.22Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M1.01 10.94L0.72 10.53L0.72 12.22L1.01 12.62Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M1.43 11.19L1.01 10.94L1.01 12.62L1.43 12.88Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M4.28 13.79L1.43 11.19L1.43 12.88L4.28 15.48Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M13.54 12.41L13.14 14.6L13.14 16.29L13.54 14.09Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M5.58 15.74L4.28 13.79L4.28 15.48L5.58 17.43Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M13.14 14.6L12.32 16.06L12.32 17.75L13.14 16.29Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M6.07 17.69L5.58 15.74L5.58 17.43L6.07 19.38Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M12.32 16.06L12.08 17.69L12.08 19.38L12.32 17.75Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M12.08 17.69L6.07 17.69L6.07 19.38L12.08 19.38Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.44 1.92L4.62 1.27L5.09 0.8L5.74 0.63L6.39 0.8L6.87 1.27L7.04 1.92L7.04 7.29L7.09 7.28L7.44 6.75L8.03 6.49L8.66 6.58L9.14 7L9.32 7.61L9.33 7.92L9.61 7.37L10.15 7.07L10.77 7.12L11.25 7.51L11.43 8.1L11.45 8.74L11.7 8.23L12.2 7.96L12.77 8.01L13.21 8.37L13.38 8.91L13.54 12.41L13.14 14.6L12.32 16.06L12.08 17.69L6.07 17.69L5.58 15.74L4.28 13.79L1.43 11.19L1.01 10.94L0.72 10.53L0.63 10.05L0.72 9.57L1.01 9.16L1.43 8.9L4.44 9.72Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M12.29 12.35L11.88 14.54M11.92 14.43L11.11 15.89M11.07 16.01L10.82 17.64M12.08 17.06L6.07 17.06M7.32 17.61L6.83 15.66M6.78 15.54L5.48 13.59M5.38 13.48L2.53 10.89M2.41 10.8L1.99 10.54M2.2 10.73L1.91 10.32M1.98 10.47L1.88 9.98%22 fill=%22none%22 stroke=%22rgb(255, 255, 255)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M13.14 14.83L13.36 15.06M13.37 13.37L13.54 13.54M12.32 17.42L12.44 17.53M12.45 15.84L13.05 16.44M13.05 14.75L13.14 14.83M12.08 18.87L12.15 18.93M12.15 17.24L12.32 17.42M6.07 17.95L7.5 19.37M7.5 17.69L9.19 19.37M9.2 17.69L10.89 19.37M10.9 17.69L12.08 18.87M5.59 17.47L6.07 17.95M5.58 15.76L5.59 15.77M4.28 14.46L5.58 15.76M1.43 11.61L4.28 14.46M1.01 11.19L1.43 11.61M0.72 10.91L1.01 11.19M0.63 10.81L0.72 10.91%22 fill=%22none%22 stroke=%22rgb(210, 210, 210)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M13.54 12.41L13.14 14.6M13.14 14.6L12.32 16.06M12.32 16.06L12.08 17.69M12.08 17.69L6.07 17.69M12.08 17.69L12.08 19.38M6.07 17.69L5.58 15.74M6.07 17.69L6.07 19.38M5.58 15.74L4.28 13.79M4.28 13.79L1.43 11.19M1.43 11.19L1.01 10.94M1.01 10.94L0.72 10.53M0.72 10.53L0.63 10.05%22 fill=%22none%22 stroke=%22rgb(168, 168, 168)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cg%3E%3Cpath d=%22M7.04 7.29L7.04 10.7M9.32 7.77L9.32 10.21M11.43 8.34L11.43 10.7%22 fill=%22none%22 stroke=%22rgb(168, 168, 168)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.44 1.92L4.62 1.27M4.62 1.27L5.09 0.8M5.09 0.8L5.74 0.63M5.74 0.63L6.39 0.8M6.39 0.8L6.87 1.27M6.87 1.27L7.04 1.92M7.04 1.92L7.04 7.29M7.04 7.29L7.09 7.28M7.09 7.28L7.44 6.75M7.44 6.75L8.03 6.49M8.03 6.49L8.66 6.58M8.66 6.58L9.14 7M9.14 7L9.32 7.61M9.32 7.61L9.33 7.92M9.33 7.92L9.61 7.37M9.61 7.37L10.15 7.07M10.15 7.07L10.77 7.12M10.77 7.12L11.25 7.51M11.25 7.51L11.43 8.1M11.43 8.1L11.45 8.74M11.45 8.74L11.7 8.23M11.7 8.23L12.2 7.96M12.2 7.96L12.77 8.01M12.77 8.01L13.21 8.37M13.21 8.37L13.38 8.91M13.38 8.91L13.54 12.41M13.54 14.09L13.14 16.29M13.54 12.41L13.54 14.09M13.14 16.29L12.32 17.75M12.32 17.75L12.08 19.38M12.08 19.38L6.07 19.38M6.07 19.38L5.58 17.43M5.58 17.43L4.28 15.48M4.28 15.48L1.43 12.88M1.43 12.88L1.01 12.62M1.01 12.62L0.72 12.22M0.72 12.22L0.63 11.74M0.63 10.05L0.72 9.57M0.63 10.05L0.63 11.74M0.72 9.57L1.01 9.16M1.01 9.16L1.43 8.9M1.43 8.9L4.44 9.72M4.44 9.72L4.44 1.92%22 fill=%22none%22 stroke=%22rgb(85, 85, 85)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 6 1, pointer;
+  --cursor-grab: url("data:image/svg+xml,%3Csvg viewBox=%220 0 15 20%22 width=%2215%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M0.7 10.35L0.63 9.87L0.63 11.67L0.7 12.16Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M0.95 10.77L0.7 10.35L0.7 12.16L0.95 12.58Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M14.31 8.88L14.05 12.79L14.05 14.6L14.31 10.69Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M1.35 11.06L0.95 10.77L0.95 12.58L1.35 12.87Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M4.49 13.92L1.35 11.06L1.35 12.87L4.49 15.73Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M14.05 12.79L13.01 15.31L13.01 17.12L14.05 14.6Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M5.53 15.48L4.49 13.92L4.49 15.73L5.53 17.29Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M13.01 15.31L12.48 17.57L12.48 19.38L13.01 17.12Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M6.23 17.57L5.53 15.48L5.53 17.29L6.23 19.38Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M12.48 17.57L6.23 17.57L6.23 19.38L12.48 19.38Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.49 3.14L4.66 2.51L5.12 2.05L5.75 1.88L6.38 2.05L6.84 2.51L7.01 3.14L7.01 1.93L7.01 1.93L7.18 1.28L7.66 0.8L8.31 0.63L8.97 0.8L9.44 1.28L9.62 1.93L9.62 2.62L9.62 2.62L9.79 1.99L10.25 1.53L10.88 1.36L11.51 1.53L11.97 1.99L12.14 2.62L12.14 4.58L12.14 4.58L12.28 4.04L12.68 3.64L13.22 3.49L13.77 3.64L14.16 4.04L14.31 4.58L14.31 8.88L14.05 12.79L13.01 15.31L12.48 17.57L6.23 17.57L5.53 15.48L4.49 13.92L1.35 11.06L0.95 10.77L0.7 10.35L0.63 9.87L0.74 9.39L1.03 8.99L1.45 8.74L4.49 10.1Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M13.05 8.86L12.79 12.77M12.81 12.66L11.77 15.18M11.75 15.24L11.23 17.5M12.48 16.94L6.23 16.94M7.47 17.47L6.78 15.38M6.73 15.28L5.69 13.72M5.59 13.62L2.46 10.76M2.39 10.71L2 10.42M2.16 10.59L1.91 10.17M1.96 10.31L1.88 9.82%22 fill=%22none%22 stroke=%22rgb(255, 255, 255)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M14.05 14.05L14.08 14.08M14.08 12.38L14.19 12.49M14.18 10.79L14.29 10.9M14.29 9.2L14.31 9.22M13.01 16.4L13.22 16.61M13.18 14.88L13.71 15.41M13.68 13.68L14.05 14.05M12.48 19.27L12.5 19.29M12.48 17.58L12.82 17.91M12.8 16.2L13.01 16.4M6.23 18.11L7.5 19.38M7.39 17.57L9.19 19.38M9.08 17.57L10.89 19.38M10.78 17.57L12.48 19.27M12.48 17.57L12.48 17.58M5.59 17.47L6.23 18.11M5.53 15.72L5.65 15.83M4.49 14.67L5.53 15.72M1.35 11.53L4.49 14.67M0.95 11.14L1.35 11.53M0.7 10.88L0.95 11.14M0.63 10.81L0.7 10.88%22 fill=%22none%22 stroke=%22rgb(210, 210, 210)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M14.31 8.88L14.05 12.79M14.05 12.79L13.01 15.31M13.01 15.31L12.48 17.57M12.48 17.57L6.23 17.57M12.48 17.57L12.48 19.38M6.23 17.57L5.53 15.48M6.23 17.57L6.23 19.38M5.53 15.48L4.49 13.92M4.49 13.92L1.35 11.06M1.35 11.06L0.95 10.77M0.95 10.77L0.7 10.35M0.7 10.35L0.63 9.87%22 fill=%22none%22 stroke=%22rgb(168, 168, 168)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cg%3E%3Cpath d=%22M7.01 3.14L7.01 8.88M9.62 2.62L9.62 8.88M12.14 4.58L12.14 9.23%22 fill=%22none%22 stroke=%22rgb(168, 168, 168)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.49 3.14L4.66 2.51M4.66 2.51L5.12 2.05M5.12 2.05L5.75 1.88M5.75 1.88L6.38 2.05M6.38 2.05L6.84 2.51M6.84 2.51L7.01 3.14M7.01 3.14L7.01 1.93M7.01 1.93L7.01 1.93M7.01 1.93L7.18 1.28M7.18 1.28L7.66 0.8M7.66 0.8L8.31 0.63M8.31 0.63L8.97 0.8M8.97 0.8L9.44 1.28M9.44 1.28L9.62 1.93M9.62 1.93L9.62 2.62M9.62 2.62L9.62 2.62M9.62 2.62L9.79 1.99M9.79 1.99L10.25 1.53M10.25 1.53L10.88 1.36M10.88 1.36L11.51 1.53M11.51 1.53L11.97 1.99M11.97 1.99L12.14 2.62M12.14 2.62L12.14 4.58M12.14 4.58L12.14 4.58M12.14 4.58L12.28 4.04M12.28 4.04L12.68 3.64M12.68 3.64L13.22 3.49M13.22 3.49L13.77 3.64M13.77 3.64L14.16 4.04M14.16 4.04L14.31 4.58M14.31 4.58L14.31 8.88M14.31 10.69L14.05 14.6M14.31 8.88L14.31 10.69M14.05 14.6L13.01 17.12M13.01 17.12L12.48 19.38M12.48 19.38L6.23 19.38M6.23 19.38L5.53 17.29M5.53 17.29L4.49 15.73M4.49 15.73L1.35 12.87M1.35 12.87L0.95 12.58M0.95 12.58L0.7 12.16M0.7 12.16L0.63 11.67M0.63 9.87L0.74 9.39M0.63 9.87L0.63 11.67M0.74 9.39L1.03 8.99M1.03 8.99L1.45 8.74M1.45 8.74L4.49 10.1M4.49 10.1L4.49 3.14%22 fill=%22none%22 stroke=%22rgb(85, 85, 85)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 9 10, grab;
+  --cursor-grabbing: url("data:image/svg+xml,%3Csvg viewBox=%220 0 17 20%22 width=%2217%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M0.74 9.15L0.63 8.59L0.63 10.86L0.74 11.42Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M1.07 9.62L0.74 9.15L0.74 11.42L1.07 11.89Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M15.91 7.72L15.58 11.43L15.58 13.7L15.91 9.99Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M1.56 9.93L1.07 9.62L1.07 11.89L1.56 12.19Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M3.79 11.87L1.56 9.93L1.56 12.19L3.79 14.14Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M15.58 11.43L14.27 14.27L14.27 16.54L15.58 13.7Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M4.88 14.49L3.79 11.87L3.79 14.14L4.88 16.76Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M14.27 14.27L13.61 17.11L13.61 19.38L14.27 16.54Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M5.75 17.11L4.88 14.49L4.88 16.76L5.75 19.38Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3Cpath d=%22M13.61 17.11L5.75 17.11L5.75 19.38L13.61 19.38Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M3.57 3.57L3.78 2.78L4.36 2.2L5.15 1.99L5.95 2.2L6.53 2.78L6.74 3.57L6.74 2.26L6.74 2.26L6.96 1.44L7.56 0.84L8.37 0.63L9.19 0.84L9.79 1.44L10.01 2.26L10.01 2.81L10.01 2.81L10.22 2.02L10.8 1.44L11.59 1.23L12.39 1.44L12.97 2.02L13.18 2.81L13.18 4.23L13.18 4.23L13.36 3.54L13.86 3.05L14.54 2.86L15.22 3.05L15.72 3.54L15.91 4.23L15.91 7.72L15.58 11.43L14.27 14.27L13.61 17.11L5.75 17.11L4.88 14.49L3.79 11.87L1.56 9.93L1.07 9.62L0.74 9.15L0.63 8.59L0.74 8.03L1.07 7.56L1.56 7.26L3.57 6.63Z%22 fill=%22rgb(255, 255, 255)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M14.65 7.69L14.32 11.4M14.35 11.29L13.04 14.13M13.02 14.2L12.36 17.03M13.61 16.48L5.75 16.48M7 17L6.12 14.38M6.12 14.36L5.02 11.74M4.88 11.55L2.65 9.61M2.54 9.53L2.05 9.23M2.26 9.42L1.93 8.95M1.99 9.09L1.88 8.53%22 fill=%22none%22 stroke=%22rgb(255, 255, 255)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M15.58 12.18L15.7 12.31M15.65 10.56L15.84 10.75M15.79 9L15.91 9.12M14.27 15.97L14.45 16.15M14.27 14.27L14.98 14.98M14.8 13.11L15.52 13.82M15.34 11.95L15.58 12.18M13.61 18.7L13.74 18.83M13.63 17.03L14.06 17.45M13.95 15.65L14.27 15.97M5.75 19.33L5.8 19.38M5.75 17.63L7.5 19.38M6.92 17.11L9.19 19.38M8.62 17.11L10.89 19.38M10.32 17.11L12.59 19.38M12.02 17.11L13.61 18.7M5.73 19.31L5.75 19.33M4.88 16.76L5.75 17.63M4.88 15.06L5.17 15.35M3.79 13.97L4.88 15.06M3.79 12.28L4.08 12.57M1.56 11.74L3.79 13.97M1.56 10.04L3.79 12.28M1.07 11.25L1.56 11.74M1.25 9.74L1.56 10.04M0.74 10.92L1.07 11.25M0.74 9.23L0.91 9.39M0.63 10.81L0.74 10.92M0.63 9.11L0.74 9.23%22 fill=%22none%22 stroke=%22rgb(210, 210, 210)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M15.91 7.72L15.58 11.43M15.58 11.43L14.27 14.27M14.27 14.27L13.61 17.11M13.61 17.11L5.75 17.11M13.61 17.11L13.61 19.38M5.75 17.11L4.88 14.49M5.75 17.11L5.75 19.38M4.88 14.49L3.79 11.87M3.79 11.87L1.56 9.93M1.56 9.93L1.07 9.62M1.07 9.62L0.74 9.15M0.74 9.15L0.63 8.59%22 fill=%22none%22 stroke=%22rgb(168, 168, 168)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cg%3E%3Cpath d=%22M6.74 3.57L6.74 6.41M10.01 2.81L10.01 6.19M13.18 4.23L13.18 6.63M3.57 6.85L5.97 7.94L15.14 8.16%22 fill=%22none%22 stroke=%22rgb(168, 168, 168)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M3.57 3.57L3.78 2.78M3.78 2.78L4.36 2.2M4.36 2.2L5.15 1.99M5.15 1.99L5.95 2.2M5.95 2.2L6.53 2.78M6.53 2.78L6.74 3.57M6.74 3.57L6.74 2.26M6.74 2.26L6.74 2.26M6.74 2.26L6.96 1.44M6.96 1.44L7.56 0.84M7.56 0.84L8.37 0.63M8.37 0.63L9.19 0.84M9.19 0.84L9.79 1.44M9.79 1.44L10.01 2.26M10.01 2.26L10.01 2.81M10.01 2.81L10.01 2.81M10.01 2.81L10.22 2.02M10.22 2.02L10.8 1.44M10.8 1.44L11.59 1.23M11.59 1.23L12.39 1.44M12.39 1.44L12.97 2.02M12.97 2.02L13.18 2.81M13.18 2.81L13.18 4.23M13.18 4.23L13.18 4.23M13.18 4.23L13.36 3.54M13.36 3.54L13.86 3.05M13.86 3.05L14.54 2.86M14.54 2.86L15.22 3.05M15.22 3.05L15.72 3.54M15.72 3.54L15.91 4.23M15.91 4.23L15.91 7.72M15.91 9.99L15.58 13.7M15.91 7.72L15.91 9.99M15.58 13.7L14.27 16.54M14.27 16.54L13.61 19.38M13.61 19.38L5.75 19.38M5.75 19.38L4.88 16.76M4.88 16.76L3.79 14.14M3.79 14.14L1.56 12.19M1.56 12.19L1.07 11.89M1.07 11.89L0.74 11.42M0.74 11.42L0.63 10.86M0.63 8.59L0.74 8.03M0.63 8.59L0.63 10.86M0.74 8.03L1.07 7.56M1.07 7.56L1.56 7.26M1.56 7.26L3.57 6.63M3.57 6.63L3.57 3.57%22 fill=%22none%22 stroke=%22rgb(85, 85, 85)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 9 7, grabbing;
+}
+:root[data-theme="dark"] {
+  --cursor: url("data:image/svg+xml,%3Csvg viewBox=%220 0 14 20%22 width=%2214%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M12.5 10.49L7.04 10.49L7.04 12.48L12.5 12.48Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M4.55 11.45L0.63 15.18L0.63 17.17L4.55 13.44Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M7.14 17.38L4.55 11.45L4.55 13.44L7.14 19.38Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M9.63 16.33L7.14 17.38L7.14 19.38L9.63 18.32Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M12.5 10.49L7.04 10.49L9.63 16.33L7.14 17.38L4.55 11.45L0.63 15.18L0.63 0.63Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M12.5 9.86L7.04 9.86M8.81 15.85L6.32 16.9M8.37 17.25L5.78 11.31M3.44 11.15L-0.49 14.89%22 fill=%22none%22 stroke=%22rgb(22, 22, 22)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M7.1 10.49L9.09 12.48M8.79 10.49L10.78 12.48M10.49 10.49L12.48 12.48M12.19 10.49L12.5 10.8M7.14 19.02L7.39 19.27M7.18 17.37L8.58 18.76M8.38 16.86L9.63 18.11M9.57 16.36L9.63 16.42M6.86 18.74L7.14 19.02M5.55 15.73L7.09 17.27M4.55 13.04L5.78 14.26M0.62 15.9L1.28 16.55M1.13 14.7L2.15 15.72M2 13.88L3.02 14.9M2.87 13.05L3.89 14.07M3.74 12.22L4.55 13.04%22 fill=%22none%22 stroke=%22rgb(54, 54, 54)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M12.5 10.49L7.04 10.49M9.63 16.33L7.14 17.38M7.14 17.38L4.55 11.45M7.14 17.38L7.14 19.38M4.55 11.45L0.63 15.18M4.55 11.45L4.55 13.44%22 fill=%22none%22 stroke=%22rgb(98, 98, 98)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M12.5 12.48L7.92 12.48M12.5 10.49L12.5 12.48M7.04 10.49L9.63 16.33M9.63 18.32L7.14 19.38M9.63 16.33L9.63 18.32M7.14 19.38L4.55 13.44M4.55 13.44L0.63 17.17M0.63 15.18L0.63 0.63M0.63 15.18L0.63 17.17M0.63 0.63L12.5 10.49%22 fill=%22none%22 stroke=%22rgb(196, 196, 196)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 1 1, default;
+  --cursor-pointer: url("data:image/svg+xml,%3Csvg viewBox=%220 0 15 20%22 width=%2215%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M0.72 10.53L0.63 10.05L0.63 11.74L0.72 12.22Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M1.01 10.94L0.72 10.53L0.72 12.22L1.01 12.62Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M1.43 11.19L1.01 10.94L1.01 12.62L1.43 12.88Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M4.28 13.79L1.43 11.19L1.43 12.88L4.28 15.48Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M13.54 12.41L13.14 14.6L13.14 16.29L13.54 14.09Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M5.58 15.74L4.28 13.79L4.28 15.48L5.58 17.43Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M13.14 14.6L12.32 16.06L12.32 17.75L13.14 16.29Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M6.07 17.69L5.58 15.74L5.58 17.43L6.07 19.38Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M12.32 16.06L12.08 17.69L12.08 19.38L12.32 17.75Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M12.08 17.69L6.07 17.69L6.07 19.38L12.08 19.38Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.44 1.92L4.62 1.27L5.09 0.8L5.74 0.63L6.39 0.8L6.87 1.27L7.04 1.92L7.04 7.29L7.09 7.28L7.44 6.75L8.03 6.49L8.66 6.58L9.14 7L9.32 7.61L9.33 7.92L9.61 7.37L10.15 7.07L10.77 7.12L11.25 7.51L11.43 8.1L11.45 8.74L11.7 8.23L12.2 7.96L12.77 8.01L13.21 8.37L13.38 8.91L13.54 12.41L13.14 14.6L12.32 16.06L12.08 17.69L6.07 17.69L5.58 15.74L4.28 13.79L1.43 11.19L1.01 10.94L0.72 10.53L0.63 10.05L0.72 9.57L1.01 9.16L1.43 8.9L4.44 9.72Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M12.29 12.35L11.88 14.54M11.92 14.43L11.11 15.89M11.07 16.01L10.82 17.64M12.08 17.06L6.07 17.06M7.32 17.61L6.83 15.66M6.78 15.54L5.48 13.59M5.38 13.48L2.53 10.89M2.41 10.8L1.99 10.54M2.2 10.73L1.91 10.32M1.98 10.47L1.88 9.98%22 fill=%22none%22 stroke=%22rgb(22, 22, 22)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M13.14 14.83L13.36 15.06M13.37 13.37L13.54 13.54M12.32 17.42L12.44 17.53M12.45 15.84L13.05 16.44M13.05 14.75L13.14 14.83M12.08 18.87L12.15 18.93M12.15 17.24L12.32 17.42M6.07 17.95L7.5 19.37M7.5 17.69L9.19 19.37M9.2 17.69L10.89 19.37M10.9 17.69L12.08 18.87M5.59 17.47L6.07 17.95M5.58 15.76L5.59 15.77M4.28 14.46L5.58 15.76M1.43 11.61L4.28 14.46M1.01 11.19L1.43 11.61M0.72 10.91L1.01 11.19M0.63 10.81L0.72 10.91%22 fill=%22none%22 stroke=%22rgb(54, 54, 54)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M13.54 12.41L13.14 14.6M13.14 14.6L12.32 16.06M12.32 16.06L12.08 17.69M12.08 17.69L6.07 17.69M12.08 17.69L12.08 19.38M6.07 17.69L5.58 15.74M6.07 17.69L6.07 19.38M5.58 15.74L4.28 13.79M4.28 13.79L1.43 11.19M1.43 11.19L1.01 10.94M1.01 10.94L0.72 10.53M0.72 10.53L0.63 10.05%22 fill=%22none%22 stroke=%22rgb(98, 98, 98)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cg%3E%3Cpath d=%22M7.04 7.29L7.04 10.7M9.32 7.77L9.32 10.21M11.43 8.34L11.43 10.7%22 fill=%22none%22 stroke=%22rgb(98, 98, 98)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.44 1.92L4.62 1.27M4.62 1.27L5.09 0.8M5.09 0.8L5.74 0.63M5.74 0.63L6.39 0.8M6.39 0.8L6.87 1.27M6.87 1.27L7.04 1.92M7.04 1.92L7.04 7.29M7.04 7.29L7.09 7.28M7.09 7.28L7.44 6.75M7.44 6.75L8.03 6.49M8.03 6.49L8.66 6.58M8.66 6.58L9.14 7M9.14 7L9.32 7.61M9.32 7.61L9.33 7.92M9.33 7.92L9.61 7.37M9.61 7.37L10.15 7.07M10.15 7.07L10.77 7.12M10.77 7.12L11.25 7.51M11.25 7.51L11.43 8.1M11.43 8.1L11.45 8.74M11.45 8.74L11.7 8.23M11.7 8.23L12.2 7.96M12.2 7.96L12.77 8.01M12.77 8.01L13.21 8.37M13.21 8.37L13.38 8.91M13.38 8.91L13.54 12.41M13.54 14.09L13.14 16.29M13.54 12.41L13.54 14.09M13.14 16.29L12.32 17.75M12.32 17.75L12.08 19.38M12.08 19.38L6.07 19.38M6.07 19.38L5.58 17.43M5.58 17.43L4.28 15.48M4.28 15.48L1.43 12.88M1.43 12.88L1.01 12.62M1.01 12.62L0.72 12.22M0.72 12.22L0.63 11.74M0.63 10.05L0.72 9.57M0.63 10.05L0.63 11.74M0.72 9.57L1.01 9.16M1.01 9.16L1.43 8.9M1.43 8.9L4.44 9.72M4.44 9.72L4.44 1.92%22 fill=%22none%22 stroke=%22rgb(196, 196, 196)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 6 1, pointer;
+  --cursor-grab: url("data:image/svg+xml,%3Csvg viewBox=%220 0 15 20%22 width=%2215%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M0.7 10.35L0.63 9.87L0.63 11.67L0.7 12.16Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M0.95 10.77L0.7 10.35L0.7 12.16L0.95 12.58Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M14.31 8.88L14.05 12.79L14.05 14.6L14.31 10.69Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M1.35 11.06L0.95 10.77L0.95 12.58L1.35 12.87Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M4.49 13.92L1.35 11.06L1.35 12.87L4.49 15.73Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M14.05 12.79L13.01 15.31L13.01 17.12L14.05 14.6Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M5.53 15.48L4.49 13.92L4.49 15.73L5.53 17.29Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M13.01 15.31L12.48 17.57L12.48 19.38L13.01 17.12Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M6.23 17.57L5.53 15.48L5.53 17.29L6.23 19.38Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M12.48 17.57L6.23 17.57L6.23 19.38L12.48 19.38Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.49 3.14L4.66 2.51L5.12 2.05L5.75 1.88L6.38 2.05L6.84 2.51L7.01 3.14L7.01 1.93L7.01 1.93L7.18 1.28L7.66 0.8L8.31 0.63L8.97 0.8L9.44 1.28L9.62 1.93L9.62 2.62L9.62 2.62L9.79 1.99L10.25 1.53L10.88 1.36L11.51 1.53L11.97 1.99L12.14 2.62L12.14 4.58L12.14 4.58L12.28 4.04L12.68 3.64L13.22 3.49L13.77 3.64L14.16 4.04L14.31 4.58L14.31 8.88L14.05 12.79L13.01 15.31L12.48 17.57L6.23 17.57L5.53 15.48L4.49 13.92L1.35 11.06L0.95 10.77L0.7 10.35L0.63 9.87L0.74 9.39L1.03 8.99L1.45 8.74L4.49 10.1Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M13.05 8.86L12.79 12.77M12.81 12.66L11.77 15.18M11.75 15.24L11.23 17.5M12.48 16.94L6.23 16.94M7.47 17.47L6.78 15.38M6.73 15.28L5.69 13.72M5.59 13.62L2.46 10.76M2.39 10.71L2 10.42M2.16 10.59L1.91 10.17M1.96 10.31L1.88 9.82%22 fill=%22none%22 stroke=%22rgb(22, 22, 22)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M14.05 14.05L14.08 14.08M14.08 12.38L14.19 12.49M14.18 10.79L14.29 10.9M14.29 9.2L14.31 9.22M13.01 16.4L13.22 16.61M13.18 14.88L13.71 15.41M13.68 13.68L14.05 14.05M12.48 19.27L12.5 19.29M12.48 17.58L12.82 17.91M12.8 16.2L13.01 16.4M6.23 18.11L7.5 19.38M7.39 17.57L9.19 19.38M9.08 17.57L10.89 19.38M10.78 17.57L12.48 19.27M12.48 17.57L12.48 17.58M5.59 17.47L6.23 18.11M5.53 15.72L5.65 15.83M4.49 14.67L5.53 15.72M1.35 11.53L4.49 14.67M0.95 11.14L1.35 11.53M0.7 10.88L0.95 11.14M0.63 10.81L0.7 10.88%22 fill=%22none%22 stroke=%22rgb(54, 54, 54)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M14.31 8.88L14.05 12.79M14.05 12.79L13.01 15.31M13.01 15.31L12.48 17.57M12.48 17.57L6.23 17.57M12.48 17.57L12.48 19.38M6.23 17.57L5.53 15.48M6.23 17.57L6.23 19.38M5.53 15.48L4.49 13.92M4.49 13.92L1.35 11.06M1.35 11.06L0.95 10.77M0.95 10.77L0.7 10.35M0.7 10.35L0.63 9.87%22 fill=%22none%22 stroke=%22rgb(98, 98, 98)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cg%3E%3Cpath d=%22M7.01 3.14L7.01 8.88M9.62 2.62L9.62 8.88M12.14 4.58L12.14 9.23%22 fill=%22none%22 stroke=%22rgb(98, 98, 98)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M4.49 3.14L4.66 2.51M4.66 2.51L5.12 2.05M5.12 2.05L5.75 1.88M5.75 1.88L6.38 2.05M6.38 2.05L6.84 2.51M6.84 2.51L7.01 3.14M7.01 3.14L7.01 1.93M7.01 1.93L7.01 1.93M7.01 1.93L7.18 1.28M7.18 1.28L7.66 0.8M7.66 0.8L8.31 0.63M8.31 0.63L8.97 0.8M8.97 0.8L9.44 1.28M9.44 1.28L9.62 1.93M9.62 1.93L9.62 2.62M9.62 2.62L9.62 2.62M9.62 2.62L9.79 1.99M9.79 1.99L10.25 1.53M10.25 1.53L10.88 1.36M10.88 1.36L11.51 1.53M11.51 1.53L11.97 1.99M11.97 1.99L12.14 2.62M12.14 2.62L12.14 4.58M12.14 4.58L12.14 4.58M12.14 4.58L12.28 4.04M12.28 4.04L12.68 3.64M12.68 3.64L13.22 3.49M13.22 3.49L13.77 3.64M13.77 3.64L14.16 4.04M14.16 4.04L14.31 4.58M14.31 4.58L14.31 8.88M14.31 10.69L14.05 14.6M14.31 8.88L14.31 10.69M14.05 14.6L13.01 17.12M13.01 17.12L12.48 19.38M12.48 19.38L6.23 19.38M6.23 19.38L5.53 17.29M5.53 17.29L4.49 15.73M4.49 15.73L1.35 12.87M1.35 12.87L0.95 12.58M0.95 12.58L0.7 12.16M0.7 12.16L0.63 11.67M0.63 9.87L0.74 9.39M0.63 9.87L0.63 11.67M0.74 9.39L1.03 8.99M1.03 8.99L1.45 8.74M1.45 8.74L4.49 10.1M4.49 10.1L4.49 3.14%22 fill=%22none%22 stroke=%22rgb(196, 196, 196)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 9 10, grab;
+  --cursor-grabbing: url("data:image/svg+xml,%3Csvg viewBox=%220 0 17 20%22 width=%2217%22 height=%2220%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cg%3E%3Cpath d=%22M0.74 9.15L0.63 8.59L0.63 10.86L0.74 11.42Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M1.07 9.62L0.74 9.15L0.74 11.42L1.07 11.89Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M15.91 7.72L15.58 11.43L15.58 13.7L15.91 9.99Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M1.56 9.93L1.07 9.62L1.07 11.89L1.56 12.19Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M3.79 11.87L1.56 9.93L1.56 12.19L3.79 14.14Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M15.58 11.43L14.27 14.27L14.27 16.54L15.58 13.7Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M4.88 14.49L3.79 11.87L3.79 14.14L4.88 16.76Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M14.27 14.27L13.61 17.11L13.61 19.38L14.27 16.54Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M5.75 17.11L4.88 14.49L4.88 16.76L5.75 19.38Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3Cpath d=%22M13.61 17.11L5.75 17.11L5.75 19.38L13.61 19.38Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M3.57 3.57L3.78 2.78L4.36 2.2L5.15 1.99L5.95 2.2L6.53 2.78L6.74 3.57L6.74 2.26L6.74 2.26L6.96 1.44L7.56 0.84L8.37 0.63L9.19 0.84L9.79 1.44L10.01 2.26L10.01 2.81L10.01 2.81L10.22 2.02L10.8 1.44L11.59 1.23L12.39 1.44L12.97 2.02L13.18 2.81L13.18 4.23L13.18 4.23L13.36 3.54L13.86 3.05L14.54 2.86L15.22 3.05L15.72 3.54L15.91 4.23L15.91 7.72L15.58 11.43L14.27 14.27L13.61 17.11L5.75 17.11L4.88 14.49L3.79 11.87L1.56 9.93L1.07 9.62L0.74 9.15L0.63 8.59L0.74 8.03L1.07 7.56L1.56 7.26L3.57 6.63Z%22 fill=%22rgb(22, 22, 22)%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M14.65 7.69L14.32 11.4M14.35 11.29L13.04 14.13M13.02 14.2L12.36 17.03M13.61 16.48L5.75 16.48M7 17L6.12 14.38M6.12 14.36L5.02 11.74M4.88 11.55L2.65 9.61M2.54 9.53L2.05 9.23M2.26 9.42L1.93 8.95M1.99 9.09L1.88 8.53%22 fill=%22none%22 stroke=%22rgb(22, 22, 22)%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cg%3E%3Cpath d=%22M15.58 12.18L15.7 12.31M15.65 10.56L15.84 10.75M15.79 9L15.91 9.12M14.27 15.97L14.45 16.15M14.27 14.27L14.98 14.98M14.8 13.11L15.52 13.82M15.34 11.95L15.58 12.18M13.61 18.7L13.74 18.83M13.63 17.03L14.06 17.45M13.95 15.65L14.27 15.97M5.75 19.33L5.8 19.38M5.75 17.63L7.5 19.38M6.92 17.11L9.19 19.38M8.62 17.11L10.89 19.38M10.32 17.11L12.59 19.38M12.02 17.11L13.61 18.7M5.73 19.31L5.75 19.33M4.88 16.76L5.75 17.63M4.88 15.06L5.17 15.35M3.79 13.97L4.88 15.06M3.79 12.28L4.08 12.57M1.56 11.74L3.79 13.97M1.56 10.04L3.79 12.28M1.07 11.25L1.56 11.74M1.25 9.74L1.56 10.04M0.74 10.92L1.07 11.25M0.74 9.23L0.91 9.39M0.63 10.81L0.74 10.92M0.63 9.11L0.74 9.23%22 fill=%22none%22 stroke=%22rgb(54, 54, 54)%22 stroke-width=%220.6px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cpath d=%22M15.91 7.72L15.58 11.43M15.58 11.43L14.27 14.27M14.27 14.27L13.61 17.11M13.61 17.11L5.75 17.11M13.61 17.11L13.61 19.38M5.75 17.11L4.88 14.49M5.75 17.11L5.75 19.38M4.88 14.49L3.79 11.87M3.79 11.87L1.56 9.93M1.56 9.93L1.07 9.62M1.07 9.62L0.74 9.15M0.74 9.15L0.63 8.59%22 fill=%22none%22 stroke=%22rgb(98, 98, 98)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3Cg%3E%3Cpath d=%22M6.74 3.57L6.74 6.41M10.01 2.81L10.01 6.19M13.18 4.23L13.18 6.63M3.57 6.85L5.97 7.94L15.14 8.16%22 fill=%22none%22 stroke=%22rgb(98, 98, 98)%22 stroke-width=%220.9px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3Cpath d=%22M3.57 3.57L3.78 2.78M3.78 2.78L4.36 2.2M4.36 2.2L5.15 1.99M5.15 1.99L5.95 2.2M5.95 2.2L6.53 2.78M6.53 2.78L6.74 3.57M6.74 3.57L6.74 2.26M6.74 2.26L6.74 2.26M6.74 2.26L6.96 1.44M6.96 1.44L7.56 0.84M7.56 0.84L8.37 0.63M8.37 0.63L9.19 0.84M9.19 0.84L9.79 1.44M9.79 1.44L10.01 2.26M10.01 2.26L10.01 2.81M10.01 2.81L10.01 2.81M10.01 2.81L10.22 2.02M10.22 2.02L10.8 1.44M10.8 1.44L11.59 1.23M11.59 1.23L12.39 1.44M12.39 1.44L12.97 2.02M12.97 2.02L13.18 2.81M13.18 2.81L13.18 4.23M13.18 4.23L13.18 4.23M13.18 4.23L13.36 3.54M13.36 3.54L13.86 3.05M13.86 3.05L14.54 2.86M14.54 2.86L15.22 3.05M15.22 3.05L15.72 3.54M15.72 3.54L15.91 4.23M15.91 4.23L15.91 7.72M15.91 9.99L15.58 13.7M15.91 7.72L15.91 9.99M15.58 13.7L14.27 16.54M14.27 16.54L13.61 19.38M13.61 19.38L5.75 19.38M5.75 19.38L4.88 16.76M4.88 16.76L3.79 14.14M3.79 14.14L1.56 12.19M1.56 12.19L1.07 11.89M1.07 11.89L0.74 11.42M0.74 11.42L0.63 10.86M0.63 8.59L0.74 8.03M0.63 8.59L0.63 10.86M0.74 8.03L1.07 7.56M1.07 7.56L1.56 7.26M1.56 7.26L3.57 6.63M3.57 6.63L3.57 3.57%22 fill=%22none%22 stroke=%22rgb(196, 196, 196)%22 stroke-width=%221.25px%22 stroke-linejoin=%22round%22 stroke-linecap=%22round%22%3E%3C/path%3E%3C/g%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 9 7, grabbing;
+}
+/* end cursors */
+/* the root fills the window, so the cursor holds to its very edges, below a short page too */
+html { cursor: var(--cursor); min-height: 100%; }
+a[href], button, summary, label[for], select, [role="button"] { cursor: var(--cursor-pointer); }
+
+/* header: the logo top-left, the three links centred */
+.top { position: relative; height: 96px; }
+.top .mark { position: absolute; left: 35px; top: 25px; width: 32px; height: 32px; display: block; }
+.top .mark img { width: 100%; height: 100%; display: block; transition: transform 900ms var(--ease-out), filter 420ms var(--ease-out); }
+/* lights off: the logo turns once and goes white; every other logo just goes white */
+:root[data-theme="dark"] .top .mark img { transform: rotate(360deg); }
+:root[data-theme="dark"] img[src$="logo-slices.svg"], :root[data-theme="dark"] img[src*="assets/icon-"] { filter: brightness(0) invert(1); }
+img[src$="logo-slices.svg"], img[src*="assets/icon-"] { transition: filter 420ms var(--ease-out); }
+@media (prefers-reduced-motion: reduce) { .top .mark img { transition: filter 420ms var(--ease-out); } }
+.top nav { position: absolute; left: 50%; top: 42px; transform: translateX(-50%); display: flex; gap: 40px; font-size: 12px; line-height: normal; }
+.top nav a { text-decoration: none; color: var(--text-base); transition: color 150ms var(--ease-out); }
+.top nav a:hover { color: var(--text-subtle); }
+.top nav:has([aria-current]) a:not([aria-current]) { color: var(--text-subtle); }
+.top nav:has([aria-current]) a:not([aria-current]):hover { color: var(--text-base); }
+/* the underline is a 1px rule under the link: the current page's always there; on hover it draws in from the left, and
+   on leaving it runs off to the right */
+.top nav a:not(.tech) { position: relative; }
+.top nav a::after { content: ""; position: absolute; left: 0; right: 0; top: calc(100% + 1px); height: 1px; background: currentColor; pointer-events: none;
+  transform: scaleX(0); transform-origin: right; transition: transform 420ms var(--ease-out); }
+.top nav a:hover::after { transform: scaleX(1); transform-origin: left; }
+.top nav a[aria-current="page"]::after { transform: none; }
+/* the light pull, top right (assets/theme.js): a beaded cord from the page's top edge to a pendant cut as three slices;
+   a click, a tap, or Enter or Space tugs it and the lights go off, or back on */
+.top .pull { position: absolute; right: 30px; top: 0; width: 40px; height: 104px; z-index: 5; display: block; padding: 0; border: 0; background: none; color: var(--text-base); border-radius: var(--radius-md); }
+.top .pull svg { display: block; width: 100%; height: 100%; overflow: visible; transform-origin: 50% 0; }
+.top .pull .bead { fill: var(--text-base); }
+.top .pull .slice { fill: var(--page); stroke: currentColor; stroke-width: 1.4; transition: fill 320ms var(--ease-out); }
+.top .pull:hover svg { transform: translateY(3px); transition: transform 200ms var(--ease-out); }
+.top .pull.is-tugged svg { animation: tug 520ms var(--ease-out); }
+@keyframes tug { 0% { transform: translateY(0); } 30% { transform: translateY(16px); } 65% { transform: translateY(-3px); } 100% { transform: translateY(0); } }
+.top .pull:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .top .pull svg, .top .pull.is-tugged svg { animation: none; transition: none; transform: none; } }
+
+/* home */
+.home { overflow-x: clip; min-height: calc(100vh - 96px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 32px; padding-bottom: 96px; }
+.wordmark { margin: 0; display: flex; align-items: center; gap: 0.27em; font-size: 16px; font-weight: 500; line-height: normal; }
+.wordmark .slot { position: relative; display: block; width: 26px; height: 26px; margin: 0 2px; }
+/* the selection frame the opening's cursor picks the logo with */
+.wordmark .pick { position: absolute; left: 50%; top: 50%; width: 30px; height: 30px; margin: -15px 0 0 -15px; border: 1px solid var(--blue-500); opacity: 0; pointer-events: none; }
+.wordmark .pick i { position: absolute; width: 5px; height: 5px; background: var(--page); border: 1px solid var(--blue-500); }
+.wordmark .pick i:nth-child(1) { left: -3px; top: -3px; } .wordmark .pick i:nth-child(2) { right: -3px; top: -3px; }
+.wordmark .pick i:nth-child(3) { left: -3px; bottom: -3px; } .wordmark .pick i:nth-child(4) { right: -3px; bottom: -3px; }
+.wordmark .slot img { display: block; width: 26px; height: 26px; }
+
+/* the opening, run once per load by index.html: these are its start states, so nothing flashes before it runs */
+.intro .wordmark .w { opacity: 0; }
+.intro .wordmark .slot { width: 0; margin: 0 0 0 -0.27em; }
+.intro .wordmark .slot img { opacity: 0; transform: rotate(43.88deg); }
+.intro .stage, .intro .install { opacity: 0; }
+.intro .stage { pointer-events: none; }
+.cursor { position: fixed; left: 0; top: 0; width: 14px; height: 20px; pointer-events: none; z-index: 20; opacity: 0; filter: drop-shadow(0 2px 4px rgba(31, 31, 31, 0.18)); }
+.cursor img { display: block; width: 100%; height: 100%; }
+.tap { position: fixed; left: 0; top: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 1px solid var(--text-disabled); pointer-events: none; z-index: 19; opacity: 0; }
+.install .caret { display: inline-block; width: 1px; height: 12px; margin-left: 1px; vertical-align: -2px; background: var(--text-subtle); animation: caret 900ms steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.stage { width: 440px; max-width: calc(100vw - 48px); aspect-ratio: 1; margin: -40px 0; }
+.stage:hover { cursor: var(--cursor-pointer); }
+.stage-hint { margin: 0; font: 11px/1 var(--mono); color: var(--text-disabled); min-height: 11px; }
+.intro .stage-hint { opacity: 0; }
+.install { display: inline-flex; align-items: center; gap: 10px; padding: 4px 8px; border: 0; border-radius: var(--radius-md); background: var(--surface-base); font: 500 12px/normal Inter, ui-sans-serif, sans-serif; color: var(--text-subtle); cursor: var(--cursor-pointer); transition: background 150ms var(--ease-out); }
+.install:hover { background: var(--hover); }
+.install .dollar { color: var(--text-disabled); }
+.install .copied { color: var(--blue-500); display: none; }
+.install.is-copied .cmd { display: none; }
+.install.is-copied .copied { display: inline; }
+
+/* inner pages */
+.page { max-width: 1040px; margin: 0 auto; padding: 24px 24px 96px; }
+.page h1 { font-size: 16px; font-weight: 500; margin: 0 0 4px; }
+.page .sub { margin: 0 0 32px; color: var(--text-subtle); font-size: 13px; }
+.page h2 { font-size: 13px; font-weight: 500; margin: 48px 0 12px; }
+.page p, .page li { color: var(--text-subtle); font-size: 13px; max-width: 680px; }
+.page code { font-family: var(--mono); font-size: 12px; background: var(--surface-base); padding: 1px 5px; border-radius: 4px; color: var(--text-base); }
+.page pre { font-family: var(--mono); font-size: 12px; background: var(--surface-base); padding: 12px 14px; border-radius: var(--radius-md); overflow-x: auto; margin: 0 0 12px; }
+.bar { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+.bar .sub { margin: 0; }
+.toggles { display: flex; gap: 8px; }
+.toggle { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: var(--radius-md); background: var(--surface-base); font-size: 12px; color: var(--text-subtle); cursor: var(--cursor-pointer); }
+.toggle input { accent-color: var(--blue-500); margin: 0; }
+
+/* library: a centred 564px column, the section list on the left (Figma 612:11043) */
+.lib { position: relative; padding: 40px 24px 120px; }
+.lib-intro { width: 460px; max-width: 100%; margin: 0 auto 40px; display: flex; flex-direction: column; align-items: center; gap: 2px; text-align: center; }
+.lib-intro h1 { margin: 0; display: flex; align-items: center; font-size: 16px; font-weight: 500; line-height: normal; }
+.lib-intro h1 span { width: 36.763px; height: 36.763px; display: grid; place-items: center; }
+.lib-intro h1 img { width: 26px; height: 26px; transform: rotate(43.88deg); }
+/* the page marks (assets/icon-*.svg) sit upright; only the logo tilts */
+.lib-intro h1 img[src*="assets/icon-"] { width: 22px; height: 22px; transform: none; }
+.page h1.marked { display: flex; align-items: center; line-height: normal; }
+.page h1.marked span { width: 36.763px; height: 36.763px; display: grid; place-items: center; margin-left: -7px; }
+.page h1.marked img { width: 22px; height: 22px; }
+.lib-intro p { margin: 0; font-size: 12px; color: var(--text-subtle); }
+.autoplay { display: flex; flex-direction: column; align-items: center; gap: 8px; margin: 0 auto 40px; font-size: 12px; color: var(--text-subtle); cursor: var(--cursor-pointer); width: max-content; }
+.switch { appearance: none; margin: 0; width: 36px; height: 16px; padding: 2px; border-radius: 16px; background: var(--hairline); cursor: var(--cursor-pointer); position: relative; transition: background 200ms var(--ease-out); }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 18px; height: 12px; border-radius: 999px; background: var(--raised); box-shadow: 0 6px 16px var(--shadow); transition: transform 200ms var(--ease-out); }
+.switch:checked { background: var(--blue-500); }
+.switch:checked::after { transform: translateX(14px); }
+.switch:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
+/* the column is drawn like a sheet: dashed construction lines down its edges and either side of the gutter */
+.lib-main { position: relative; --rule: #e4e4e4; --rule-strong: #cfcfcf; }
+:root[data-theme="dark"] .lib-main { --rule: #262626; --rule-strong: #383838; }
+.lib-main::before { content: ""; position: absolute; top: -24px; bottom: -64px; left: 50%; width: 564px; margin-left: -282px; pointer-events: none;
+  --dash: repeating-linear-gradient(to bottom, var(--rule) 0 4px, transparent 4px 8px);
+  background-image: var(--dash), var(--dash), var(--dash), var(--dash); background-size: 1px 100%; background-repeat: no-repeat;
+  background-position: 0 0, 264px 0, 299px 0, 563px 0; }
+.lib-body { position: relative; width: 564px; max-width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 120px; }
+/* the section list as a scale: ticks down a rule, the current section on the long tick */
+.lib-toc { position: absolute; top: 0; bottom: 0; left: max(24px, calc(50% - 517px)); width: 160px; pointer-events: none; }
+.lib-toc ul { position: sticky; top: 40px; margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; pointer-events: auto; counter-reset: sec;
+  border-left: 1px solid var(--rule-strong); background: repeating-linear-gradient(to bottom, var(--rule-strong) 0 1px, transparent 1px 8px) left top / 4px 100% no-repeat; }
+.lib-toc li { position: relative; padding: 16px 0 16px 18px; line-height: 16px; counter-increment: sec; }
+/* the loading state: the current section's stretch of the rule inks in, tick by tick, from its tick to the next one's,
+   then clears and starts again for the next section. One overlay on the rule itself, so its ticks are the grey ones;
+   the script sets where it starts (--from) and how far it has got (--to), in px down the list. */
+.lib-toc ul::after { content: ""; position: absolute; left: -1px; top: 0; bottom: 0; width: 5px; pointer-events: none;
+  background: linear-gradient(var(--text-base), var(--text-base)) 0 0 / 1px 100% no-repeat,
+    repeating-linear-gradient(to bottom, var(--text-base) 0 1px, transparent 1px 8px) 1px 0 / 4px 100% no-repeat;
+  clip-path: inset(var(--from, 0px) 0 calc(100% - var(--to, 0px)) 0); }
+.lib-toc li::before { content: ""; position: absolute; left: 0; top: 50%; width: 8px; border-top: 1px solid var(--text-disabled); transition: width 150ms var(--ease-out); }
+.lib-toc li:has([aria-current="true"])::before { width: 12px; border-color: var(--text-base); }
+.lib-toc a { font-size: 12px; color: var(--text-subtle); text-decoration: none; transition: color 150ms var(--ease-out); }
+.lib-toc a::before { content: counter(sec, decimal-leading-zero); margin-right: 10px; font: 11px/1 var(--mono); color: var(--text-disabled); }
+.lib-toc a:hover, .lib-toc a[aria-current="true"] { color: var(--text-base); }
+/* section header: number and name, the count out at the right; inset so it clears the edge lines */
+.shelf { position: relative; display: flex; flex-direction: column; gap: 32px; scroll-margin-top: 40px; }
+/* between sections: a hatched band across the column, centred in the 120px gap */
+.shelf + .shelf::before, .shelf + .shelf::after { content: ""; position: absolute; left: 0; right: 0; top: -72px; height: 24px; pointer-events: none; }
+/* its top and bottom edges are dashed guides like the tile rows', running the same 48px past the column */
+.shelf + .shelf::after { left: -48px; right: -48px;
+  --dash: repeating-linear-gradient(to right, var(--rule) 0 4px, transparent 4px 8px);
+  background: var(--dash) 0 0 / 100% 1px no-repeat, var(--dash) 0 100% / 100% 1px no-repeat; }
+.shelf + .shelf::before {
+  /* the hatch is one 10px svg tile, so every line is drawn identically (a gradient hatch anti-aliases each line differently) */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-1 1l2-2M0 10L10 0M9 11l2-2' stroke='%23e4e4e4' stroke-width='1'/%3E%3C/svg%3E") 0 0 / 10px 10px, var(--page); }
+:root[data-theme="dark"] .shelf + .shelf::before {
+  /* in the dark, its lines in the dark rule's tone, as the document pages' bands are */
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-1 1l2-2M0 10L10 0M9 11l2-2' stroke='%23262626' stroke-width='1'/%3E%3C/svg%3E") 0 0 / 10px 10px, var(--page); }
+/* the header masks the two gutter guides so only the column edges run past it */
+.shelf h2 { margin: 0; padding: 0 12px; background: linear-gradient(var(--page), var(--page)) 264px 0 / 36px 100% no-repeat; display: grid; grid-template-columns: 28px 1fr auto; column-gap: 12px; align-items: center; font-size: 12px; font-weight: 400; line-height: normal; }
+.shelf h2 .no, .shelf h2 .count { font: 11px/1 var(--mono); color: var(--text-disabled); }
+.shelf h2 small { grid-column: 2 / -1; margin-top: 4px; font-size: 12px; color: var(--text-subtle); }
+/* tiles: no border, framed by crop marks that darken on hover; name and number sit under the frame */
+.tiles { position: relative; display: grid; grid-template-columns: repeat(2, 264px); justify-content: space-between; row-gap: 88px; }
+/* and across the top and bottom of every row of tiles, running a little past the column (rows repeat every 264 + 88px) */
+.tiles::before { content: ""; position: absolute; top: 0; bottom: 0; left: -48px; right: -48px; pointer-events: none;
+  background: repeating-linear-gradient(to right, var(--rule) 0 4px, transparent 4px 8px);
+  --rows: repeating-linear-gradient(to bottom, #000 0 1px, transparent 1px 263px, #000 263px 264px, transparent 264px 352px);
+  -webkit-mask-image: var(--rows); mask-image: var(--rows); }
+.tile { position: relative; width: 264px; height: 264px; }
+/* the drawing area: below the read-out (the name now sits outside the tile); the one grid cell is pinned to the area
+   so a figure is scaled to fit it, not left to grow the row to its own height (a square frame would overrun by 60px) */
+.tile .fig { position: absolute; inset: 24px 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; overflow: hidden; }
+.tile .fig svg { width: 100%; height: 100%; }
+.tile .read { position: absolute; left: 12px; top: 12px; font: 11px/1 var(--mono); color: var(--text-disabled); }
+.tile .name, .tile .fno { position: absolute; top: calc(100% + 12px); line-height: 1; }
+.tile .name { left: 12px; font-size: 12px; color: var(--text-base); }
+.tile .fno { right: 12px; font: 11px/1 var(--mono); color: var(--text-disabled); }
+.crop { position: absolute; width: 11px; height: 11px; pointer-events: none; }
+.crop::before, .crop::after { content: ""; position: absolute; background: var(--text-disabled); transition: background 150ms var(--ease-out); }
+.crop::before { left: 0; right: 0; top: 5px; height: 1px; }
+.crop::after { top: 0; bottom: 0; left: 5px; width: 1px; }
+.crop.tl { left: -6px; top: -6px; } .crop.tr { right: -6px; top: -6px; } .crop.bl { left: -6px; bottom: -6px; } .crop.br { right: -6px; bottom: -6px; }
+.tile.is-filled { cursor: var(--cursor-pointer); }
+.tile.is-filled:hover .crop::before, .tile.is-filled:hover .crop::after, .tile.is-open .crop::before, .tile.is-open .crop::after { background: var(--text-base); }
+/* the empty slot is a crossed placeholder */
+.tile.is-empty { background: linear-gradient(to top right, transparent calc(50% - 0.5px), var(--rule) 50%, transparent calc(50% + 0.5px)),
+  linear-gradient(to bottom right, transparent calc(50% - 0.5px), var(--rule) 50%, transparent calc(50% + 0.5px)); }
+/* the title block closing the sheet */
+.tblock { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; border: 1px solid var(--rule); background: var(--page); }
+.tblock div { padding: 8px 10px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--text-base); }
+.tblock div:nth-child(4n) { border-right: 0; }
+.tblock div:nth-last-child(-n+4) { border-bottom: 0; }
+.tblock em { font: normal 10px/1 var(--mono); color: var(--text-disabled); }
+@media (max-width: 1080px) { .lib-toc { display: none; } }
+@media (max-width: 600px) { .tiles { grid-template-columns: 264px; justify-content: center; } .lib-main::before, .tiles::before { display: none; } }
+
+/* the details panel: the figure large, its read-out, and the scrubbers that retune it */
+.scrim { position: fixed; inset: 0; background: rgba(23, 23, 23, 0.08); opacity: 0; pointer-events: none; transition: opacity 200ms var(--ease-out); z-index: 10; }
+/* drawn as a sheet, like the column behind it, with the old panel's edge, corners and lift; its foot is the title block */
+.panel { --rule: #e4e4e4; --rule-strong: #cfcfcf;
+  position: fixed; top: 12px; right: 12px; bottom: 12px; width: 440px; max-width: calc(100vw - 24px); background: var(--page); border: 1px solid var(--border); border-radius: 16px; box-shadow: 0 6px 16px var(--shadow);
+  display: flex; flex-direction: column; overflow: hidden; transform: translateX(calc(100% + 24px)); transition: transform 300ms var(--ease-out); z-index: 11; }
+:root[data-theme="dark"] .panel { --rule: #262626; --rule-strong: #383838; }
+body.has-panel .scrim { opacity: 1; pointer-events: auto; }
+body.has-panel .panel { transform: none; }
+.panel:focus { outline: none; }
+/* head: the drawing number, the name and its read-out, the old panel's close button */
+.panel-head { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 12px 14px; font-size: 12px; }
+.panel-head .no { font: 11px/1 var(--mono); color: var(--text-disabled); }
+.panel-head b { font-weight: 500; }
+.panel-head .read { font: 11px/1 var(--mono); color: var(--text-disabled); margin-left: 6px; }
+.panel-head .read::before { content: "· "; }
+.panel-x { border: 0; background: var(--surface-base); border-radius: 6px; width: 24px; height: 24px; padding: 0; cursor: var(--cursor-pointer); color: var(--text-subtle); font-size: 14px; line-height: 1; transition: color 150ms var(--ease-out); }
+.panel-x:hover { color: var(--text-base); }
+.panel-x:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
+/* the figure sits straight on the sheet; its ground only shows when the dark switch differs from the site's theme */
+.panel-fig { margin: 8px 14px 0; background: #fff; }
+.panel-fig.is-dark { background: #161616; }
+.panel-means { margin: 12px 14px 0; font-size: 12px; color: var(--text-subtle); }
+.panel-body { flex: 1; overflow-y: auto; padding: 6px 14px 16px; }
+.panel-body h3 { margin: 14px 0 6px; font: 400 10px/1 var(--mono); color: var(--text-disabled); }
+.panel-body h3::before { content: "— "; }
+/* scrubbers: a hairline track filled to the value, a tick for the handle. On hover (or keyboard focus) only the handle
+   grows, into a 4 × 18 grip; the label darkens and the value inks blue. The whole row is the hit area. */
+.scrub { display: grid; grid-template-columns: 90px 1fr 44px; align-items: center; gap: 12px; padding: 2px 0; font-size: 12px; color: var(--text-subtle); cursor: ew-resize; transition: color 160ms var(--ease-out); }
+.scrub output { font: 11px/1 var(--mono); color: var(--text-base); text-align: right; transition: color 160ms var(--ease-out); }
+.scrub:hover, .scrub:has(:focus-visible) { color: var(--text-base); }
+.scrub:hover output, .scrub:has(:focus-visible) output { color: var(--blue-500); }
+.scrub input[type="range"] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; margin: 0; cursor: ew-resize; }
+.scrub input[type="range"]:focus-visible { outline: none; }
+.scrub input[type="range"]::-webkit-slider-runnable-track { height: 1px; background: linear-gradient(to right, var(--text-base) var(--p, 50%), var(--rule-strong) var(--p, 50%)); }
+.scrub input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 1px; height: 11px; margin-top: -5px; border: 0; background: var(--text-base);
+  transition: width 160ms var(--ease-out), height 160ms var(--ease-out), margin 160ms var(--ease-out), background 160ms var(--ease-out); }
+.scrub:hover input[type="range"]::-webkit-slider-thumb, .scrub input[type="range"]:focus-visible::-webkit-slider-thumb { width: 4px; height: 18px; margin-top: -8.5px; }
+.scrub input[type="range"]:active::-webkit-slider-thumb { background: var(--blue-500); }
+.scrub input[type="range"]::-moz-range-track { height: 1px; background: var(--rule-strong); }
+.scrub input[type="range"]::-moz-range-progress { height: 1px; background: var(--text-base); }
+.scrub input[type="range"]::-moz-range-thumb { width: 1px; height: 11px; border: 0; border-radius: 0; background: var(--text-base); transition: width 160ms var(--ease-out), height 160ms var(--ease-out), background 160ms var(--ease-out); }
+.scrub:hover input[type="range"]::-moz-range-thumb, .scrub input[type="range"]:focus-visible::-moz-range-thumb { width: 4px; height: 18px; }
+.scrub input[type="range"]:active::-moz-range-thumb { background: var(--blue-500); }
+.scrub:has(input:disabled) { cursor: var(--cursor); color: var(--text-disabled); }
+.scrub:has(input:disabled) output { color: var(--text-disabled); }
+.scrub input:disabled { opacity: 0.35; cursor: var(--cursor); }
+/* the title block: four cells naming the drawing, four that act on it, each a small mono caption over its value */
+.panel-foot { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; border-top: 1px solid var(--rule); }
+.panel-foot > * { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 8px 10px; margin: 0;
+  border: 0; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); border-radius: 0; background: none; font: 12px/normal Inter, ui-sans-serif, sans-serif; color: var(--text-base); text-align: left; }
+.panel-foot > :nth-child(4n) { border-right: 0; }
+.panel-foot > :nth-last-child(-n+4) { border-bottom: 0; }
+.panel-foot em { font: normal 10px/1 var(--mono); color: var(--text-disabled); }
+/* the view switches: the whole cell is the switch. The checkbox stays for keyboard and screen readers but isn't drawn;
+   on, the cell fills grey and its value darkens */
+.panel-foot .tog { position: relative; cursor: var(--cursor-pointer); transition: background 150ms var(--ease-out); }
+.panel-foot .tog:hover { background: var(--surface-base); }
+.panel-foot .tog b { font: 400 11px/normal var(--mono); color: var(--text-subtle); transition: color 150ms var(--ease-out); }
+.panel-foot .tog em { transition: color 150ms var(--ease-out); }
+.panel-foot .tog input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: var(--cursor-pointer); }
+.panel-foot .tog:has(:checked) { background: var(--hover); }
+.panel-foot .tog:has(:checked) b { color: var(--text-base); }
+.panel-foot .tog:has(:focus-visible) { outline: 2px solid var(--blue-500); outline-offset: -2px; }
+.panel-foot button { cursor: var(--cursor-pointer); transition: background 150ms var(--ease-out); }
+.panel-foot button:hover { background: var(--surface-base); }
+.panel-foot button:focus-visible { outline: 2px solid var(--blue-500); outline-offset: -2px; }
+@media (prefers-reduced-motion: reduce) { .panel, .scrim { transition: none; } }
+
+/* tokens table on info */
+.tokens { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.tokens li { border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px; font-size: 12px; }
+.tokens .sw { height: 40px; border-radius: 6px; margin-bottom: 8px; border: 1px solid var(--border); }
+.tokens b { display: block; font-weight: 500; color: var(--text-base); }
+.tokens span { font-family: var(--mono); font-size: 11px; }
+
+@media (max-width: 640px) { .top nav { gap: 24px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* doc pages (skill, start): drawn as a sheet like the library, a centred 640px column with the section ruler on the left.
+   Every margin and gap is the library's less a fifth: 32 / 19 / 96 round the page, 96 between sections, 26 within one */
+.doc { position: relative; padding: 32px 19px 96px; }
+.doc .lib-intro { width: 512px; margin-bottom: 32px; }
+.doc-main { position: relative; --rule: #e4e4e4; --rule-strong: #cfcfcf; }
+:root[data-theme="dark"] .doc-main { --rule: #262626; --rule-strong: #383838; }
+.doc-main::before { content: ""; position: absolute; top: -19px; bottom: -51px; left: 50%; width: 640px; margin-left: -320px; pointer-events: none;
+  --dash: repeating-linear-gradient(to bottom, var(--rule) 0 4px, transparent 4px 8px);
+  background-image: var(--dash), var(--dash); background-size: 1px 100%; background-repeat: no-repeat; background-position: 0 0, 639px 0; }
+.doc-body { position: relative; width: 640px; max-width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 96px; }
+.doc .lib-toc { left: max(19px, calc(50% - 498px)); }
+.sec { position: relative; display: flex; flex-direction: column; gap: 26px; scroll-margin-top: 32px; }
+.sec + .sec::before, .sec + .sec::after { content: ""; position: absolute; left: 0; right: 0; top: -58px; height: 19px; pointer-events: none; }
+.sec + .sec::after { left: -38px; right: -38px;
+  --dash: repeating-linear-gradient(to right, var(--rule) 0 4px, transparent 4px 8px);
+  background: var(--dash) 0 0 / 100% 1px no-repeat, var(--dash) 0 100% / 100% 1px no-repeat; }
+.sec + .sec::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-1 1l2-2M0 10L10 0M9 11l2-2' stroke='%23e4e4e4' stroke-width='1'/%3E%3C/svg%3E") 0 0 / 10px 10px, var(--page); }
+.sec h2 { margin: 0; padding: 0 10px; display: grid; grid-template-columns: 28px 1fr auto; column-gap: 10px; align-items: center; font-size: 12px; font-weight: 400; line-height: normal; }
+.sec h2 .no, .sec h2 .tag { font: 11px/1 var(--mono); color: var(--text-disabled); }
+.sec h2 small { grid-column: 2 / -1; margin-top: 4px; font-size: 12px; color: var(--text-subtle); }
+.sec > p, .sec > .cells, .sec > .code, .sec > .note { margin: 0 10px; }
+.sec > p { font-size: 13px; color: var(--text-subtle); }
+.sec > p code, .cells code { font: 11.5px/1 var(--mono); color: var(--text-base); background: var(--surface-base); padding: 2px 5px; border-radius: 4px; }
+.sec .note { font: 11px/1.6 var(--mono); color: var(--text-disabled); }
+/* cells: the title block's grid, one row a step, a command or a part: a number, a name in mono, then what it does */
+.cells { display: grid; grid-template-columns: 38px 150px 1fr; border: 1px solid var(--rule); background: var(--page); }
+.cells > div { display: contents; }
+.cells > div > * { padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 12px; color: var(--text-subtle); }
+.cells > div:last-child > * { border-bottom: 0; }
+.cells > div > :not(:last-child) { border-right: 1px solid var(--rule); }
+.cells em { font: normal 10px/1.6 var(--mono); color: var(--text-disabled); }
+.cells b { font: 400 11.5px/1.5 var(--mono); color: var(--text-base); word-break: break-word; }
+.cells.two { grid-template-columns: 200px 1fr; }
+.cells.wide { grid-template-columns: 38px 260px 1fr; }
+/* code: a sheet of its own, its kind on the left of a ruled head and a copy cell on the right */
+.code { border: 1px solid var(--rule); background: var(--page); }
+.code-head { display: flex; justify-content: space-between; border-bottom: 1px solid var(--rule); }
+.code-head em { padding: 6px 10px; font: normal 10px/1 var(--mono); color: var(--text-disabled); }
+.code-head button { padding: 6px 10px; border: 0; border-left: 1px solid var(--rule); background: none; font: 10px/1 var(--mono); color: var(--text-subtle); cursor: var(--cursor-pointer); transition: background 150ms var(--ease-out), color 150ms var(--ease-out); }
+.code-head button:hover { background: var(--surface-base); color: var(--text-base); }
+.code pre { margin: 0; padding: 10px 12px; overflow-x: auto; font: 11.5px/1.6 var(--mono); color: var(--text-base); }
+.doc .tblock { margin-top: 0; }
+@media (max-width: 720px) { .doc-main::before, .sec + .sec::after { display: none; } .cells { grid-template-columns: 30px 1fr; } .cells > div > :nth-child(3) { grid-column: 2; border-right: 0; } }
+/* the sheet drawing itself in as you scroll (assets/reveal.js, which sets .reveal on the page; without it, or with
+   reduced motion, everything is there from the start). The column lines run down to --drawn, eased as it grows; each
+   section's guides and hatched band, and each row of tiles' guides, draw across from the left as they come in; text
+   and tiles fade up in turn */
+@property --drawn { syntax: "<length>"; inherits: true; initial-value: 0px; }
+.reveal { --draw-ease: cubic-bezier(0.33, 1, 0.68, 1); }
+.reveal :is(.lib-main, .doc-main) { transition: --drawn 1600ms var(--draw-ease); }
+.reveal :is(.lib-main, .doc-main)::before { clip-path: inset(0 0 max(0px, calc(100% - var(--drawn))) 0); }
+.reveal :is(.shelf + .shelf, .sec + .sec)::after, .guide-row { clip-path: inset(0 100% 0 0); transition: clip-path 1400ms var(--draw-ease); }
+.reveal :is(.shelf + .shelf, .sec + .sec)::before { clip-path: inset(0 100% 0 0); transition: clip-path 1400ms var(--draw-ease) 200ms; }
+.reveal :is(.shelf, .sec).is-drawn::after, .reveal :is(.shelf, .sec).is-drawn::before, .guide-row.is-drawn { clip-path: inset(0 0 0 0); }
+/* the rows' guides as lines of their own, so each draws as its row comes in (in place of .tiles::before) */
+.reveal .tiles::before { display: none; }
+.guide-row { position: absolute; left: -48px; right: -48px; height: 1px; pointer-events: none; background: repeating-linear-gradient(to right, var(--rule) 0 4px, transparent 4px 8px); }
+@media (max-width: 600px) { .guide-row { display: none; } }
+/* until the script has marked what fades, the page body is held back, so nothing shows before it starts */
+.reveal:not(.is-loaded) main { opacity: 0; }
+.reveal .top > * { opacity: 0; transition: opacity 900ms var(--draw-ease); }
+.reveal.is-loaded .top > * { opacity: 1; }
+.reveal .rv { opacity: 0; transform: translateY(8px); transition: opacity 900ms var(--draw-ease), transform 900ms var(--draw-ease); }
+.reveal .rv.is-in { opacity: 1; transform: none; }
+.reveal:not(.is-loaded) .rv { transition: none; }
+
+/* technicals: a fourth link that exists only with the lights off. It sits just past the nav, out of its flow, so the other
+   three never move; when the lights are pulled off it flickers on like a tube catching, and holds a faint glow */
+.top nav .tech { position: absolute; left: 100%; margin-left: 40px; visibility: hidden; opacity: 0; white-space: nowrap; }
+:root[data-theme="dark"] .top nav .tech { visibility: visible; opacity: 1; text-shadow: 0 0 6px rgba(255, 255, 255, 0.28); }
+/* only as the lights go off (assets/theme.js adds .tech-on for the moment after a pull), never on a page load */
+:root.tech-on[data-theme="dark"] .top nav .tech { animation: tech-on 1100ms linear both; }
+@keyframes tech-on {
+  0%, 8% { opacity: 0; } 10% { opacity: 0.9; } 13% { opacity: 0.1; } 22% { opacity: 0.1; } 24% { opacity: 1; }
+  28% { opacity: 0.3; } 40% { opacity: 0.3; } 43% { opacity: 1; } 47% { opacity: 0.6; } 52%, 100% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { :root.tech-on[data-theme="dark"] .top nav .tech { animation: none; } }
+/* tones: a swatch beside each value, the light and dark columns side by side */
+.cells.tones { grid-template-columns: 110px 1fr 104px 104px; }
+.cells.tones .sw { display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; border: 1px solid var(--rule-strong); }
+.cells.tones span { font: 11px/1.5 var(--mono); }
+.cells.head > * { color: var(--text-disabled); font: 10px/1.6 var(--mono); }
+:root[data-theme="dark"] .sec + .sec::before {
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-1 1l2-2M0 10L10 0M9 11l2-2' stroke='%23262626' stroke-width='1'/%3E%3C/svg%3E") 0 0 / 10px 10px, var(--page); }
+/* get started's mark is drawn in the logo's own grammar, so it is shown at the logo's size, and so at its weight */
+.lib-intro h1 img[src$="icon-start.svg"] { width: 26px; height: 26px; }
+
+/* ---- the contour figures (assets/figure.js): each is an svg of slices, painted bottom up. Every slice is filled with
+   the ground, so a higher one covers a lower one, then its edges are drawn in one ink at rule A's weights. The ground
+   and ink follow the site's theme; the panel's figure keeps its own (its theme switch) ---- */
+:root { --ct-ground: #ffffff; --ct-ink: #171717; }
+:root[data-theme="dark"] { --ct-ground: #161616; --ct-ink: #ededed; }
+.panel-fig { --ct-ground: #ffffff; --ct-ink: #171717; }
+.panel-fig.is-dark { --ct-ground: #161616; --ct-ink: #ededed; }
+.ct { display: block; width: 100%; height: 100%; overflow: hidden; }
+.ct .fill { fill: var(--ct-ground); stroke: none; fill-rule: evenodd; transition: fill 320ms var(--ease-out); }
+.ct .ln { fill: none; stroke: var(--ct-ink); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.panel-fig { aspect-ratio: 1; max-height: 46vh; margin-left: auto; margin-right: auto; transition: background 320ms var(--ease-out); }
+.panel-hint { margin: 6px 14px 0; font: 11px/1.4 var(--mono); color: var(--text-disabled); }
+.cells.five { grid-template-columns: 130px 1fr 100px 100px 100px; }
+.cells.five span { font: 11px/1.5 var(--mono); }
+.cells.five > div > :first-child + span { font: 12px/1.45 Inter, ui-sans-serif, sans-serif; }
+@media (max-width: 720px) { .cells.five { grid-template-columns: 1fr; } .cells.five > div > * { border-right: 0 !important; } .cells.five > div > :not(:first-child) { padding-top: 0; } }
