@@ -229,7 +229,7 @@ function makeProjector(view, scene) {
  */
 
 /** the defaults for rule A: heavy silhouettes and light faces, far edges receding, lower sheets only a little fainter */
-const RULE = { base: 0.9, contrast: 0.4, depth: 0.8, fade: 0 };
+const RULE = { base: 0.8, contrast: 0.3, depth: 0.8, fade: 0.1 };
 /** the camera: `azimuth` turns the object (degrees), `tilt` is the sine of the elevation (0.5 is the 2:1 view) */
 const VIEW = { azimuth: 35, tilt: 0.5 };
 
@@ -1045,6 +1045,76 @@ const gearTrain = {
   },
 };
 
+/* ===== figures/gramophone.js ===== */
+/*
+ * A gramophone: a square cabinet with a turntable and record, a column at the back corner carrying the tonearm out
+ * to a soundbox on the record, and a flared horn rising from the column, its mouth open to the sky. Move up it and
+ * the record turns while rings of sound rise out of the horn one after another, spreading as they climb. At rest the
+ * record is still and the air above the horn is empty. The horn is a hollow shell, so you look down into its throat.
+ *
+ * The cabinet, column, arm and horn are cut once; the record is cut again as it turns, the sound as it rises.
+ */
+const GRAM_REC = [0.06, 0.08], GRAM_THROAT = [-0.3, -0.3], GRAM_MOUTH = [-0.18, -0.18], GRAM_HZ = [0.2, 0.98];
+
+/** the distance from (x, y, z) to the 3D segment a-b */
+const gramophoneSeg = (x, y, z, a, b) => {
+  const d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], p = [x - a[0], y - a[1], z - a[2]];
+  const t = clamp((p[0] * d[0] + p[1] * d[1] + p[2] * d[2]) / (d[0] ** 2 + d[1] ** 2 + d[2] ** 2), 0, 1);
+  return Math.hypot(p[0] - t * d[0], p[1] - t * d[1], p[2] - t * d[2]);
+};
+
+/** the horn: a thin shell whose centre drifts forward and whose radius flares as it rises, with a rolled rim */
+const gramophoneHorn = (x, y, z) => {
+  const u = clamp((z - GRAM_HZ[0]) / (GRAM_HZ[1] - GRAM_HZ[0]), 0, 1), drift = 0.12 * u * u, R = 0.05 + 0.33 * u * u;
+  const rho = len2(x - GRAM_THROAT[0] - drift, y - GRAM_THROAT[1] - drift);
+  const shell = Math.max(Math.abs(rho - R) - 0.012, GRAM_HZ[0] - z, z - GRAM_HZ[1]);
+  const rim = Math.hypot(len2(x - GRAM_MOUTH[0], y - GRAM_MOUTH[1]) - 0.38, z - GRAM_HZ[1]) - 0.02;
+  return Math.min(shell, rim);
+};
+
+const gramophone = {
+  T: 4, zr: [-0.23, 1.4], S: 225, zm: 0.55,
+  active: [0, 2.4],                                                  // the record turns and the sound rises; the pose at 0 is the rest pose
+  drive: (x, y) => clamp((470 - y) / 330, 0, 1),                     // up the gramophone, from the cabinet to the horn
+  hint: "move up the gramophone to play a record",
+  parts: [
+    { id: "cabinet", order: 0, box: { x: [-0.62, 0.62], y: [-0.62, 0.62] }, planes: planes(-0.23, 0.05), sdf: (x, y, z) =>
+      Math.min(roundBox(x, y, z + 0.09, 0.4, 0.4, 0.11, 0.03), roundBox(x, y, z + 0.205, 0.44, 0.44, 0.005, 0.02)) },   // the box on a wider foot
+    { id: "column", order: 1, box: { x: [-0.42, -0.18], y: [-0.42, -0.18] }, planes: planes(0.05, 0.21, 0.01), sdf: (x, y, z) =>
+      Math.min(rcyl(len2(x - GRAM_THROAT[0], y - GRAM_THROAT[1]), z, 0.05, 0.05, 0.21, 0.012), rcyl(len2(x - GRAM_THROAT[0], y - GRAM_THROAT[1]), z, 0.075, 0.05, 0.08, 0.012)) },
+    { id: "record", order: 2, dynamic: true, cell: 0.011, key: (p) => p.ph.toFixed(2), box: { x: [-0.32, 0.44], y: [-0.3, 0.46] }, planes: planes(0.05, 0.13, 0.015),
+      sdf: (x, y, z, { ph }) => {
+        const dx = x - GRAM_REC[0], dy = y - GRAM_REC[1], r = len2(dx, dy);
+        const platter = rcyl(r, z, 0.33, 0.04, 0.08, 0.01), record = Math.max(r - 0.31, Math.abs(z - 0.0875) - 0.0075);
+        const label = Math.max(r - 0.1, Math.abs(z - 0.105) - 0.01);
+        const mark = rcyl(len2(dx - 0.065 * Math.cos(ph), dy - 0.065 * Math.sin(ph)), z, 0.02, 0.1, 0.125, 0.005);   // a bump on the label that shows the turn
+        return Math.min(platter, record, label, mark, rcyl(r, z, 0.015, 0.1, 0.13, 0.005));
+      } },
+    { id: "arm", order: 3, cell: 0.008, box: { x: [-0.42, 0.36], y: [-0.42, 0.36] }, planes: planes(0.1, 0.23, 0.01), sdf: (x, y, z) =>
+      Math.min(gramophoneSeg(x, y, z, [-0.3, -0.3, 0.19], [0.2, 0.18, 0.17]) - 0.022, rcyl(len2(x - 0.21, y - 0.19), z, 0.06, 0.1, 0.17, 0.015)) },   // the tonearm and its soundbox
+    { id: "horn", order: 4, cell: 0.007, box: { x: [-0.66, 0.3], y: [-0.66, 0.3] }, planes: [...planes(0.2, 0.5, 0.01), ...planes(0.53, 1.0)], sdf: gramophoneHorn },
+    { id: "sound", order: 5, overlay: true, dynamic: true, cell: 0.009, key: (p) => p.us.map((u) => u.toFixed(2)).join(),
+      box: { x: [-0.86, 0.5], y: [-0.86, 0.5] }, planes: planes(1.01, 1.4),
+      sdf: (x, y, z, { us }) => {
+        const rho = len2(x - GRAM_MOUTH[0], y - GRAM_MOUTH[1]);
+        let d = 1;
+        for (const u of us) d = Math.min(d, Math.max(Math.abs(rho - (0.36 + 0.3 * u)) - 0.012, Math.abs(z - (1.03 + 0.34 * u)) - 0.016));   // a flat ring, wider as it climbs
+        return d;
+      } },
+  ],
+  /**
+   * k, the intensity: how many rings of sound rise out of the horn (the record turns the same in all three).
+   * 0: two · 0.5: four · 1: six
+   */
+  step(t, abs, k = 0.5) {
+    const n = Math.round(byIntensity(k, [2, 4, 6])), back = 1 - sm(2.8, 3.8, t), play = sm(0.4, 2.4, t) * back;
+    const ph = Math.round((2 * 2 * Math.PI * sm(0, 2.4, t) * back) / 0.02) * 0.02;
+    const us = [];
+    for (let i = 0; i < n; i++) { const u = Math.round(clamp(play - i / n, 0, 1) * 50) / 50; if (u > 0.02) us.push(u); }   // ring i leaves the mouth at play = i/n
+    return { cabinet: {}, column: {}, arm: {}, horn: {}, record: { prm: { ph } }, sound: { prm: us.length ? { us } : null } };
+  },
+};
+
 /* ===== figures/gyroscope.js ===== */
 /*
  * A toy gyroscope: a heavy rotor, with a ring of round cut-outs, on a long axle whose pointed foot rests in a cup on a
@@ -1177,6 +1247,55 @@ const hourglass = {
   step(t, abs, k = 0.5) {
     const run = byIntensity(k, [0.4, 0.7, 0.95]), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t));
     return { glass: {}, posts: {}, sand: { prm: { f: Math.round(run * e * 50) / 50 } } };
+  },
+};
+
+/* ===== figures/ipod.js ===== */
+/*
+ * A classic iPod lying on its back: a rounded slab with a recessed screen at the top end and a click wheel below it,
+ * a centre button inside the wheel and four small marks round its rim. The screen holds five rows of a list with a
+ * selection bar around one. Move across it and a fingertip runs round the wheel while the bar steps down the list,
+ * one row for each quarter turn. At rest the fingertip waits at the top of the wheel and the first row is chosen.
+ *
+ * The body, rows and wheel are cut once; the selection bar and the fingertip are rigid and only move.
+ */
+const IPOD_TOP = 0.06, IPOD_SCREEN = [0, -0.22], IPOD_WHEEL = [0, 0.24], IPOD_ROW = 0.065, IPOD_THUMB = 0.15;
+const ipodRowY = (j) => IPOD_SCREEN[1] - 2 * IPOD_ROW + j * IPOD_ROW;
+
+const ipod = {
+  T: 4, zr: [-0.06, 0.14], S: 370, zm: 0.04,
+  active: [0, 2.4],                                                  // the fingertip turns and the list scrolls; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 170) / 260, 0, 1),                        // across the iPod
+  hint: "move across the iPod to scroll the wheel",
+  parts: [
+    { id: "body", order: 0, cell: 0.008, box: { x: [-0.4, 0.4], y: [-0.62, 0.62] }, planes: planes(-0.06, 0.06, 0.012), sdf: (x, y, z) =>
+      subtract(roundBox(x, y, z, 0.24, 0.44, 0.02, 0.04), roundBox(x - IPOD_SCREEN[0], y - IPOD_SCREEN[1], z - IPOD_TOP, 0.2, 0.15, 0.025, 0.012)) },   // the slab, with the screen sunk into it
+    { id: "rows", order: 1, cell: 0.005, box: { x: [-0.24, 0.24], y: [-0.4, -0.04] }, planes: planes(0.018, 0.042, 0.012), sdf: (x, y, z) => {
+      let d = 1;
+      for (let j = 0; j < 5; j++) d = Math.min(d, roundBox(x + 0.03 * (j % 2), y - ipodRowY(j), z - 0.025, 0.14 - 0.03 * (j % 2), 0.006, 0.012, 0.004));   // five lines of the list, of two lengths
+      return d;
+    } },
+    { id: "select", order: 2, cell: 0.005, box: { x: [-0.24, 0.24], y: [-0.4, -0.24] }, planes: planes(0.018, 0.054, 0.012), sdf: (x, y, z) =>
+      roundBox(x, y - ipodRowY(0), z - 0.042, 0.18, 0.022, 0.002, 0.006) },                     // a bar lit over the chosen row
+    { id: "wheel", order: 3, cell: 0.007, box: { x: [-0.28, 0.28], y: [-0.04, 0.52] }, planes: planes(0.06, 0.09, 0.012), sdf: (x, y, z) => {
+      const dx = x - IPOD_WHEEL[0], dy = y - IPOD_WHEEL[1], r = len2(dx, dy);
+      const ring = subtract(rcyl(r, z, 0.2, 0.04, 0.072, 0.008), rcyl(r, z, 0.085, 0, 0.2, 0));
+      let marks = 1;
+      for (const [mx, my] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) marks = Math.min(marks, rcyl(len2(dx - 0.165 * mx, dy - 0.165 * my), z, 0.014, 0.06, 0.08, 0.004));   // menu, play, back, forward
+      return Math.min(ring, marks, rcyl(r, z, 0.07, 0.04, 0.084, 0.012));                       // and the centre button
+    } },
+    { id: "thumb", order: 4, cell: 0.008, box: { x: [-0.12, 0.12], y: [-0.03, 0.21] }, planes: planes(0.072, 0.13, 0.012), sdf: (x, y, z) =>
+      Math.hypot(x - IPOD_WHEEL[0], (y - IPOD_WHEEL[1] + IPOD_THUMB) / 1.25, (z - 0.072) / 0.9) - 0.06 },                                 // a fingertip pad resting on the wheel
+  ],
+  /**
+   * k, the intensity: how far down the list it scrolls (a quarter turn of the wheel for each row).
+   * 0: one row · 0.5: three · 1: four, to the end
+   */
+  step(t, abs, k = 0.5) {
+    const rows = byIntensity(k, [1, 3, 4]), u = sm(0, 2.2, t) * (1 - sm(2.8, 3.8, t)), a = rows * (Math.PI / 2) * u;
+    const row = Math.min(4, Math.floor(rows * u + 0.15));
+    return { body: {}, rows: {}, wheel: {}, select: { off: [0, row * IPOD_ROW, 0] },
+      thumb: { off: [IPOD_THUMB * Math.sin(a), IPOD_THUMB * (1 - Math.cos(a)), 0] } };   // round the wheel from the top
   },
 };
 
@@ -1900,6 +2019,68 @@ const rocket = {
   },
 };
 
+/* ===== figures/rotary-phone.js ===== */
+/*
+ * A rotary phone seen from above: a rounded body with the handset lying across its back on two cradle prongs, and
+ * the dial at the front: a plate of ten dots under a turning finger wheel with ten holes, a centre cap, and a finger
+ * stop at the lower right. Move across it and the dial turns clockwise until a hole meets the stop; let go and it
+ * springs home. At rest the holes sit over their dots and the dial is still.
+ *
+ * The body, plate, cap, stop and handset are cut once; the finger wheel is cut again as it turns.
+ */
+const PHONE_DIAL = [0, 0.12], PHONE_STOP = (50 * Math.PI) / 180, PHONE_HOLE0 = (-10 * Math.PI) / 180, PHONE_STEP = Math.PI / 6;
+const PHONE_HOLE_R = 0.19, PHONE_HZ = -0.3;
+
+/** the angle of hole j (j = 0 is the one nearest the stop), counter-clockwise from it */
+const phoneHoleA = (j) => PHONE_HOLE0 - j * PHONE_STEP;
+
+/** the finger wheel turned by `ph`: a disc with ten holes on a ring, measuring only the nearest hole */
+const phoneWheel = (x, y, z, { ph }) => {
+  const dx = x - PHONE_DIAL[0], dy = y - PHONE_DIAL[1], r = len2(dx, dy), th = Math.atan2(dy, dx) - ph;
+  const rel = ((((PHONE_HOLE0 - th) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI)), j = clamp(Math.round(rel / PHONE_STEP), 0, 9);
+  let hole = 1;
+  for (const i of [j, 0, 9]) { const a = phoneHoleA(i) + ph; hole = Math.min(hole, len2(dx - PHONE_HOLE_R * Math.cos(a), dy - PHONE_HOLE_R * Math.sin(a)) - 0.042); }   // the nearest, and the two either side of the gap
+  return subtract(rcyl(r, z, 0.27, 0.16, 0.19, 0.008), hole);
+};
+
+const rotaryPhone = {
+  T: 4, zr: [-0.22, 0.38], S: 300, zm: 0.08,
+  active: [0, 2],                                                    // the dial turns to the stop; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 160) / 280, 0, 1),                        // across the phone
+  hint: "move across the phone to turn the dial",
+  parts: [
+    { id: "body", order: 0, box: { x: [-0.62, 0.62], y: [-0.6, 0.6] }, planes: planes(-0.22, 0.13), sdf: (x, y, z) =>
+      roundBox(x, y, z + 0.05, 0.38, 0.34, 0.06, 0.12) },
+    { id: "plate", order: 1, cell: 0.006, box: { x: [-0.34, 0.34], y: [-0.22, 0.46] }, planes: planes(0.12, 0.165, 0.012), sdf: (x, y, z) => {
+      const dx = x - PHONE_DIAL[0], dy = y - PHONE_DIAL[1];
+      let d = rcyl(len2(dx, dy), z, 0.275, 0.1, 0.15, 0.01);
+      for (let j = 0; j < 10; j++) d = Math.min(d, rcyl(len2(dx - PHONE_HOLE_R * Math.cos(phoneHoleA(j)), dy - PHONE_HOLE_R * Math.sin(phoneHoleA(j))), z, 0.014, 0.14, 0.162, 0.004));   // a dot under each hole
+      return d;
+    } },
+    { id: "wheel", order: 2, dynamic: true, cell: 0.008, key: (p) => p.ph.toFixed(2), box: { x: [-0.32, 0.32], y: [-0.2, 0.44] }, planes: planes(0.165, 0.19, 0.012), sdf: phoneWheel },
+    { id: "cap", order: 3, box: { x: [-0.14, 0.14], y: [-0.02, 0.26] }, planes: planes(0.18, 0.216, 0.012), sdf: (x, y, z) =>
+      rcyl(len2(x - PHONE_DIAL[0], y - PHONE_DIAL[1]), z, 0.085, 0.17, 0.21, 0.012) },
+    { id: "stop", order: 3, cell: 0.006, box: { x: [0.06, 0.3], y: [0.2, 0.42] }, planes: planes(0.18, 0.23, 0.01), sdf: (x, y, z) => {
+      const c = Math.cos(PHONE_STOP), s = Math.sin(PHONE_STOP);
+      return Math.max(segDist(x, y, PHONE_DIAL[0] + 0.23 * c, PHONE_DIAL[1] + 0.23 * s, PHONE_DIAL[0] + 0.3 * c, PHONE_DIAL[1] + 0.3 * s) - 0.018, Math.abs(z - 0.205) - 0.02);
+    } },
+    { id: "handset", order: 4, cell: 0.009, box: { x: [-0.56, 0.56], y: [-0.48, -0.12] }, planes: planes(0.12, 0.38, 0.015), sdf: (x, y, z) => {
+      const dy = y - PHONE_HZ, cups = Math.min(rcyl(len2(x - 0.34, dy), z, 0.1, 0.13, 0.27, 0.035), rcyl(len2(x + 0.34, dy), z, 0.1, 0.13, 0.27, 0.035));
+      const arch = 0.3 + 0.05 * (1 - (x / 0.34) ** 2), handle = Math.hypot(dy / 1.3, z - arch) - 0.045;                     // the handle arches between the cups
+      const prongs = Math.min(rcyl(len2(x - 0.16, dy), z, 0.03, 0.12, 0.31, 0.01), rcyl(len2(x + 0.16, dy), z, 0.03, 0.12, 0.31, 0.01));
+      return Math.min(cups, Math.max(handle, Math.abs(x) - 0.34), prongs);
+    } },
+  ],
+  /**
+   * k, the intensity: which hole is dialled, so how far the wheel turns to the stop.
+   * 0: the nearest hole, a sixth of a turn · 0.5: the fifth, half a turn · 1: the last, eleven twelfths of a turn
+   */
+  step(t, abs, k = 0.5) {
+    const turn = PHONE_STOP - phoneHoleA(byIntensity(k, [0, 4, 9])) - 0.1;
+    return { body: {}, plate: {}, cap: {}, stop: {}, handset: {}, wheel: { prm: { ph: Math.round((turn * sm(0, 1.8, t) * (1 - sm(2.6, 3.6, t))) / 0.02) * 0.02 } } };
+  },
+};
+
 /* ===== figures/seedling.js ===== */
 /*
  * A seedling in a clay pot: a tapered pot with a rim and a mound of soil, and out of the soil a stem. Move up it and the
@@ -2537,7 +2718,7 @@ const windmill = {
 
 /* ===== figures/index.js ===== */
 /** every figure the page offers, in the order of its buttons */
-const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack, typewriter, printer, "gear train": gearTrain, "cassette deck": cassetteDeck, "sewing machine": sewingMachine, "cash register": cashRegister, orrery, metronome, letterpress, "mixing desk": mixingDesk, "film projector": filmProjector };
+const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack, typewriter, printer, "gear train": gearTrain, "cassette deck": cassetteDeck, "sewing machine": sewingMachine, "cash register": cashRegister, orrery, metronome, letterpress, "mixing desk": mixingDesk, "film projector": filmProjector, gramophone, ipod, "rotary phone": rotaryPhone };
 
 window.Contour = { createPlayer, SCENES, RULE, VIEW, SPLIT, MOTION, LEVELS, GAP_RANGE };
 })();

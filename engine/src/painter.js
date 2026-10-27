@@ -16,7 +16,7 @@ import { makeProjector, toViewer } from "./camera.js";
  */
 
 /** the defaults for rule A: heavy silhouettes and light faces, far edges receding, lower sheets only a little fainter */
-export const RULE = { base: 0.9, contrast: 0.4, depth: 0.8, fade: 0 };
+export const RULE = { base: 0.8, contrast: 0.3, depth: 0.8, fade: 0.1 };
 /** the camera: `azimuth` turns the object (degrees), `tilt` is the sine of the elevation (0.5 is the 2:1 view) */
 export const VIEW = { azimuth: 35, tilt: 0.5 };
 

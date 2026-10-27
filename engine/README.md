@@ -130,6 +130,9 @@ did before it had an intensity. Anything that is not a number is 0.5; the rest i
 | letterpress | how heavy the drawing goes as the platen bites | +0.3 | +1 | +1.8 |
 | mixing desk | how far the faders travel | 0.1 | 0.2 | 0.28 |
 | film projector | how far the beam reaches | 0.35 | 0.55 | 0.72 |
+| gramophone | how many rings of sound rise out of the horn | 2 | 4 | 6 |
+| iPod | how far down the list it scrolls (a quarter turn of the wheel per row) | 1 row | 3 | 4 |
+| rotary phone | which hole is dialled, so how far the dial turns | a sixth of a turn | half | eleven twelfths |
 | hover split | how wide the gap opens (a fraction of its cap) | 0.35 | 0.7 | 1 |
 
 A scene reads it as the third argument of `step`; the engine keeps `MOTION.intensity` (animate) and `SPLIT.intensity`
@@ -177,7 +180,7 @@ tap reads as a look and not a flash. The drawing sets `touch-action: none`, so t
 | `src/painter.js` | sheets to svg markup, rule A |
 | `src/scene.js` | a scene at time t |
 | `src/player.js` | the only file that touches the page |
-| `figures/` | rocket, camera, binoculars, lightbulb, record player, lighthouse, toaster, vault door, carousel, pocket watch, telescope, jack-in-the-box, windmill, gyroscope, umbrella, periscope submarine, seedling, drawer chest, bellows camera, percolator, terrain, volcano, ripple tank, tile pyramid, spiral stair, ring tower, funnel, hourglass, whirlpool, crystal cluster, honeycomb, card fan, tile stack, typewriter, printer, gear train, cassette deck, sewing machine, cash register, orrery, metronome, letterpress, mixing desk, film projector |
+| `figures/` | rocket, camera, binoculars, lightbulb, record player, lighthouse, toaster, vault door, carousel, pocket watch, telescope, jack-in-the-box, windmill, gyroscope, umbrella, periscope submarine, seedling, drawer chest, bellows camera, percolator, terrain, volcano, ripple tank, tile pyramid, spiral stair, ring tower, funnel, hourglass, whirlpool, crystal cluster, honeycomb, card fan, tile stack, typewriter, printer, gear train, cassette deck, sewing machine, cash register, orrery, metronome, letterpress, mixing desk, film projector, gramophone, iPod, rotary phone |
 | `tools/build.mjs` | joins the modules and every figure in `figures/` into `dist/actions.html` |
 | `tools/check.mjs` | checks a figure: its declaration, `step()`, that its shapes close inside their boxes, the cursor mapping, intensity, frame size and speed |
 | `tools/new-figure.mjs` | writes a working template figure and registers it (`--remove` undoes it) |

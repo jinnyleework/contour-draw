@@ -42,6 +42,9 @@ import { metronome } from "./metronome.js";
 import { letterpress } from "./letterpress.js";
 import { mixingDesk } from "./mixing-desk.js";
 import { filmProjector } from "./film-projector.js";
+import { gramophone } from "./gramophone.js";
+import { ipod } from "./ipod.js";
+import { rotaryPhone } from "./rotary-phone.js";
 
 /** every figure the page offers, in the order of its buttons */
-export const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack, typewriter, printer, "gear train": gearTrain, "cassette deck": cassetteDeck, "sewing machine": sewingMachine, "cash register": cashRegister, orrery, metronome, letterpress, "mixing desk": mixingDesk, "film projector": filmProjector };
+export const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack, typewriter, printer, "gear train": gearTrain, "cassette deck": cassetteDeck, "sewing machine": sewingMachine, "cash register": cashRegister, orrery, metronome, letterpress, "mixing desk": mixingDesk, "film projector": filmProjector, gramophone, ipod, "rotary phone": rotaryPhone };
