@@ -57,3 +57,12 @@ test("painter: lower sheets are fainter than higher ones when fade is on", () =>
   const high = Math.max(...opacities(paint([{ sh: square(0.98), off: [0, 0, 0] }], scene, VIEW, { ...RULE, fade: 1 })));
   assert.ok(low < high);
 });
+
+test("painter: an edge along a diagonal turn draws, and does not hang (a facing a hair over 1 once made the stroke weight NaN)", () => {
+  // the edge from the sewing machine that did it: at -135° it faces you by 1.0000000000000002
+  const d = [0.005190888719525777, -0.005190888719525763], diamond = { z: 0.5, loops: [[[0, 0], d, [d[0] + d[1], d[1] - d[0]], [d[1], -d[0]]]] };
+  for (const azimuth of [-135, -45, 45, 135]) {
+    const out = paint([{ sh: diamond, off: [0, 0, 0] }], scene, { azimuth, tilt: 0.5 });
+    assert.ok(count(out, /class="ln"/g) >= 1 && !/NaN|undefined/.test(out), `azimuth ${azimuth}`);
+  }
+});

@@ -259,7 +259,7 @@ function paint(items, scene, view = VIEW, rule = RULE, pulse = 1, shift = null) 
     for (const l of sh.loops) {
       const n = l.length, key = l.map((p, i) => {
         const q = l[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], m = Math.hypot(dx, dy) || 1;
-        const facing = Math.abs((-dy * s + dx * c) / m);                    // 0 on a silhouette, 1 facing you
+        const facing = Math.min(1, Math.abs((-dy * s + dx * c) / m));       // 0 on a silhouette, 1 facing you (capped: rounding can land a hair over 1, and the pow below would be NaN)
         const near = clamp(0.5 + ((p[0] + q[0]) * s + (p[1] + q[1]) * c) / 4.8, 0, 1);   // 0 far, 1 near
         const w = rule.base * pulse * (0.3 + 2.3 * Math.pow(1 - facing, 1.5) * rule.contrast + 0.45 * (1 - rule.contrast)) * (1 - rule.depth * 0.6 * (1 - near));
         const o = clamp(fadeO * (1 - rule.depth * 0.7 * (1 - near)), 0.1, 1);
@@ -270,7 +270,7 @@ function paint(items, scene, view = VIEW, rule = RULE, pulse = 1, shift = null) 
       if (k < 0) { emit(key[0], P2, true); continue; }
       for (let i = 0; i < n;) {
         const v = key[(k + i) % n], run = [P2[(k + i) % n]];
-        while (i < n && key[(k + i) % n] === v) { i++; run.push(P2[(k + i) % n]); }
+        do { i++; run.push(P2[(k + i) % n]); } while (i < n && key[(k + i) % n] === v);   // always steps, so a bad key cannot hang the page
         emit(v, run, false);
       }
     }
@@ -693,6 +693,58 @@ const carousel = {
   },
 };
 
+/* ===== figures/cash-register.js ===== */
+/*
+ * A cash register: a cabinet with a cash drawer, a deck of round keys above it, and a display box at the back with a
+ * window in its top. Move up it and it rings up a sale: the keys go down one after another, three flags rise in the
+ * window, and the drawer springs out, open, with its compartments. At rest the drawer is shut and the flags are down.
+ * The cabinet is cut once; the drawer and flags are rigid and only move; the keys are cut again as they press.
+ */
+const TILL_ROWS = 4, TILL_COLS = 6, TILL_ORDER = [9, 2, 16, 7, 21, 12, 4];   // the key grid, and the order a sale presses them in
+const tillKey = (i) => [-0.25 + 0.1 * (i % TILL_COLS), 0.17 - 0.08 * Math.floor(i / TILL_COLS)];
+
+const cashRegister = {
+  T: 4, zr: [0, 0.78], S: 380, zm: 0.32,
+  active: [0, 2.4],                                              // the keys press, the flags rise, the drawer opens; the pose at 0 is the rest pose
+  drive: (x, y) => clamp((480 - y) / 300, 0, 1),                 // up the register
+  hint: "move up the register to ring up a sale",
+  parts: [
+    { id: "cabinet", order: 0, cell: 0.009, box: { x: [-0.6, 0.6], y: [-0.5, 0.5] }, planes: planes(0, 0.72, 0.015), sdf: (x, y, z) => {
+      let d = subtract(roundBox(x, y, z - 0.1, 0.42, 0.32, 0.07, 0.03), Math.max(Math.abs(x) - 0.36, Math.abs(z - 0.1) - 0.065, -0.28 - y));   // the base, with a slot for the drawer
+      d = Math.min(d, roundBox(x, y - 0.02, z - 0.27, 0.38, 0.25, 0.06, 0.03));                                       // the key deck
+      const box = roundBox(x, y + 0.24, z - 0.5, 0.24, 0.05, 0.13, 0.03);                                                 // the display, at the back
+      return Math.min(d, subtract(box, Math.max(Math.abs(x) - 0.18, Math.abs(y + 0.24) - 0.035, 0.52 - z)));            // with a window down into its top
+    } },
+    { id: "keys", order: 1, dynamic: true, cell: 0.007, key: (p) => p.j + ":" + p.p.toFixed(2), box: { x: [-0.35, 0.35], y: [-0.15, 0.27] }, planes: planes(0.34, 0.42, 0.008), sdf: (x, y, z, { j, p }) => {
+      const c = clamp(Math.round((x + 0.25) / 0.1), 0, TILL_COLS - 1), r = clamp(Math.round((0.17 - y) / 0.08), 0, TILL_ROWS - 1), i = r * TILL_COLS + c;   // only the nearest key can matter
+      const [kx, ky] = tillKey(i), top = 0.41 - (i === j ? 0.03 * p : 0), rr = len2(x - kx, y - ky);
+      return Math.min(rcyl(rr, z, 0.034, top - 0.025, top, 0.012), rcyl(rr, z, 0.013, 0.32, top - 0.02, 0));                 // a round key on a post
+    } },
+    { id: "flags", order: 2, box: { x: [-0.25, 0.25], y: [-0.33, -0.15] }, planes: planes(0.42, 0.62, 0.01), sdf: (x, y, z) => {
+      let d = 1;
+      for (const fx of [-0.11, 0, 0.11]) d = Math.min(d, roundBox(x - fx, y + 0.24, z - 0.53, 0.035, 0.012, 0.07, 0.008));   // three flags, below the window at rest
+      return d;
+    } },
+    { id: "drawer", order: 3, cell: 0.008, box: { x: [-0.45, 0.45], y: [-0.4, 0.45] }, planes: planes(0.035, 0.17, 0.01), sdf: (x, y, z) => {
+      const outer = roundBox(x, y - 0.02, z - 0.1, 0.34, 0.27, 0.05, 0.01), inner = Math.max(Math.abs(x) - 0.32, Math.abs(y - 0.0) - 0.26, 0.065 - z);
+      let d = subtract(outer, inner);                                                                                      // an open tray
+      for (const dx of [-0.16, 0, 0.16]) d = Math.min(d, Math.max(roundBox(x - dx, y - 0.0, z - 0.1, 0.008, 0.26, 0.05, 0), z - 0.15));   // dividers into four compartments
+      return Math.min(d, roundBox(x, y - 0.3, z - 0.1, 0.36, 0.015, 0.06, 0.012), rcyl(len2(x, z - 0.1), y, 0.025, 0.31, 0.36, 0.01));   // a front and a knob
+    } },
+  ],
+  /**
+   * k, the intensity: how far the drawer springs out.
+   * 0: ajar · 0.5: open · 1: right out
+   */
+  step(t, abs, k = 0.5) {
+    const reach = byIntensity(k, [0.14, 0.24, 0.32]), back = 1 - sm(2.9, 3.8, t), q = TILL_ORDER.length * sm(0, 1.5, t) * back, n = Math.min(Math.floor(q), TILL_ORDER.length - 1);
+    return {
+      cabinet: {}, keys: { prm: { j: TILL_ORDER[n], p: q > 0.02 ? Math.round(Math.sin(Math.PI * (q - Math.floor(q))) * 20) / 20 : 0 } },
+      flags: { off: [0, 0, 0.12 * sm(1.3, 1.9, t) * back] }, drawer: { off: [0, reach * sm(1.6, 2.2, t) * back, 0] },
+    };
+  },
+};
+
 /* ===== figures/cassette-deck.js ===== */
 /*
  * A cassette deck lying flat: a body with a well holding a cassette, the cassette's two windows showing its reels, and
@@ -824,6 +876,55 @@ const drawerChest = {
   step(t, abs, k = 0.5) {
     const reach = byIntensity(k, [0.25, 0.4, 0.55]), back = sm(2.9, 3.8, t), out = (i) => reach * (1 - 0.2 * i) * sm(0.15 + 0.4 * i, 0.9 + 0.4 * i, t) * (1 - back);   // the lower the drawer, the further out, so you can see into each
     return { carcass: {}, drawer0: { off: [0, out(0), 0] }, drawer1: { off: [0, out(1), 0] }, drawer2: { off: [0, out(2), 0] }, drawer3: { off: [0, out(3), 0] } };
+  },
+};
+
+/* ===== figures/film-projector.js ===== */
+/*
+ * A film projector: a body on short feet with a lens to the right, and two reels lying flat on posts above it, the
+ * feed reel and the take-up reel, each with three round windows through its web. Move across it and it runs: both
+ * reels turn and a flat fan of light opens out of the lens across the page. At rest it is dark and still. The body is
+ * cut once; the reels are cut again as they turn, and the beam as it opens.
+ */
+const PROJ_X = -0.25, PROJ_LENS = [0.18, 0.13];                          // where the body sits, and the lens's end and height
+const PROJ_REELS = [{ x: -0.42, r: 0.2, z: 0.42 }, { x: -0.06, r: 0.17, z: 0.34 }];   // the feed reel, high, and the take-up reel, lower
+
+const filmProjector = {
+  T: 4, zr: [0, 0.5], S: 330, zm: 0.18,
+  active: [0, 2.4],                                              // the reels turn and the beam opens; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the projector
+  hint: "move across the projector to run the film",
+  parts: [
+    { id: "body", order: 0, cell: 0.009, box: { x: [-0.75, 0.4], y: [-0.35, 0.35] }, planes: planes(0, 0.42, 0.012), sdf: (x, y, z) => {
+      let d = roundBox(x - PROJ_X, y, z - 0.15, 0.28, 0.15, 0.1, 0.035);                                              // the body
+      d = Math.min(d, subtract(rcyl(len2(y, z - PROJ_LENS[1]), x, 0.07, 0.0, PROJ_LENS[0], 0.015), rcyl(len2(y, z - PROJ_LENS[1]), x, 0.045, 0.12, 0.3, 0)));   // the lens, its glass recessed
+      for (const fx of [-0.45, -0.05]) for (const fy of [-0.1, 0.1]) d = Math.min(d, rcyl(len2(x - fx, y - fy), z, 0.03, 0, 0.06, 0.01));   // feet
+      for (const r of PROJ_REELS) d = Math.min(d, rcyl(len2(x - r.x, y), z, 0.018, 0.2, r.z, 0.006));                  // a post for each reel
+      return d;
+    } },
+    { id: "reels", order: 1, dynamic: true, cell: 0.009, key: (p) => p.ph.toFixed(2), box: { x: [-0.66, 0.15], y: [-0.25, 0.25] }, planes: planes(0.3, 0.46, 0.01), sdf: (x, y, z, { ph }) => {
+      let d = 1;
+      for (const r of PROJ_REELS) {
+        const dx = x - r.x, rr = len2(dx, y);
+        if (rr > r.r + 0.02 || Math.abs(z - r.z) > 0.04) continue;
+        let reel = rcyl(rr, z, r.r, r.z - 0.02, r.z + 0.02, 0.008);                                                    // a flat reel
+        for (let k = 0; k < 3; k++) { const a = ph * (0.17 / r.r) + (k * 2 * Math.PI) / 3; reel = Math.max(reel, -(len2(dx - r.r * 0.55 * Math.cos(a), y - r.r * 0.55 * Math.sin(a)) - r.r * 0.27)); }
+        d = Math.min(d, reel);                                                                                          // with three round windows, turning with it
+      }
+      return d;
+    } },
+    { id: "beam", order: 2, dynamic: true, cell: 0.016, key: (p) => (p ? p.L.toFixed(2) : ""), box: { x: [0.1, 1.0], y: [-0.35, 0.35] }, planes: planes(PROJ_LENS[1] - 0.05, PROJ_LENS[1] + 0.05, 0.012), sdf: (x, y, z, { L }) => {
+      const u = x - PROJ_LENS[0];
+      return Math.max(-u, u - L, Math.abs(y) - (0.05 + 0.32 * u), Math.abs(z - PROJ_LENS[1]) - (0.02 + 0.04 * u));    // a flat fan of light, widening away from the lens
+    } },
+  ],
+  /**
+   * k, the intensity: how far the beam reaches.
+   * 0: a short throw · 0.5: across the page · 1: to the edge
+   */
+  step(t, abs, k = 0.5) {
+    const reach = byIntensity(k, [0.35, 0.55, 0.72]), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t)), L = reach * sm(0, 0.5, e * 2.4);
+    return { body: {}, reels: { prm: { ph: Math.round(-e * 12 * 25) / 25 } }, beam: { prm: L > 0.04 ? { L: Math.round(L * 40) / 40 } : null } };
   },
 };
 
@@ -1133,6 +1234,47 @@ const jackInTheBox = {
   },
 };
 
+/* ===== figures/letterpress.js ===== */
+/*
+ * A letterpress: a heavy table carrying a bed with a raised block of type (an ornament, not letters: a ring, a star
+ * and a border), four columns, a crosshead, and between them a platen on a screw with a T-handle on top. Move across it
+ * and the platen comes down on the type, the screw sinking through the crosshead, and the drawing goes heavier for a
+ * beat as it bites. At rest the platen is up. The table, columns and type are cut once; the platen and its screw are
+ * rigid and only move.
+ */
+const PRESS_DROP = 0.37;                                                 // how far the platen comes down to meet the type
+
+const letterpress = {
+  T: 4, zr: [0, 1.47], S: 280, zm: 0.62,
+  active: [0, 1.85],                                             // the platen comes down onto the type and bites; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the press
+  hint: "move across the press to print",
+  parts: [
+    { id: "frame", order: 0, cell: 0.009, box: { x: [-0.7, 0.7], y: [-0.55, 0.55] }, planes: planes(0, 0.98, 0.012), sdf: (x, y, z) => {
+      let d = roundBox(x, y, z - 0.06, 0.52, 0.38, 0.04, 0.02);                                                       // the table
+      d = Math.min(d, subtract(roundBox(x, y, z - 0.14, 0.34, 0.25, 0.02, 0.01), Math.max(Math.abs(x) - 0.3, Math.abs(y) - 0.21, 0.13 - z)));   // the bed, a frame round the type
+      const r = len2(x, y), th = Math.atan2(y, x), star = 0.1 + 0.05 * Math.cos(5 * th);
+      const type = Math.min(Math.abs(r - 0.15) - 0.015, r - star, Math.max(Math.abs(Math.max(Math.abs(x) - 0.24, Math.abs(y) - 0.15)) - 0.012, 0));   // a ring, a star and a border in relief
+      d = Math.min(d, Math.max(type, Math.abs(z - 0.155) - 0.015));
+      for (const cx of [-0.48, 0.48]) for (const cy of [-0.32, 0.32]) d = Math.min(d, rcyl(len2(x - cx, y - cy), z, 0.035, 0.1, 0.9, 0.01));   // four columns
+      return Math.min(d, subtract(roundBox(x, y, z - 0.92, 0.52, 0.36, 0.03, 0.02), rcyl(len2(x, y), z, 0.05, 0.8, 1.0, 0)));   // the crosshead, with a hole for the screw
+    } },
+    { id: "platen", order: 1, cell: 0.009, box: { x: [-0.5, 0.5], y: [-0.4, 0.4] }, planes: planes(0.54, 1.47, 0.012), sdf: (x, y, z) => {
+      const r = len2(x, y);
+      return Math.min(roundBox(x, y, z - 0.585, 0.35, 0.25, 0.03, 0.015), rcyl(r, z, 0.035, 0.6, 1.42, 0.01),               // the platen and its screw
+        rcyl(len2(y, z - 1.42), x, 0.022, -0.22, 0.22, 0.01), rcyl(len2(x, y), z, 0.05, 1.38, 1.46, 0.015));                 // a T-handle on top
+    } },
+  ],
+  /**
+   * k, the intensity: how hard the impression lands, in how heavy the drawing goes as the platen bites.
+   * 0: barely · 0.5: a clear beat · 1: a heavy one
+   */
+  step(t, abs, k = 0.5) {
+    const bite = byIntensity(k, [0.3, 1, 1.8]), e = sm(0, 1.8, t) * (1 - sm(2.9, 3.8, t));
+    return { frame: {}, platen: { off: [0, 0, -PRESS_DROP * e] }, pulse: 1 + bite * Math.exp(-(((t - 1.8) / 0.12) ** 2)) };
+  },
+};
+
 /* ===== figures/lightbulb.js ===== */
 /*
  * A lightbulb: a glass bulb on a neck, a screw base with a real helical thread, and a filament on two posts.
@@ -1260,6 +1402,142 @@ const lighthouse = {
       rock: {}, tower: {}, gallery: {}, lantern: {}, lamp: {},
       beams: { prm: L > 0.3 ? { a: Math.round(a / 0.03) * 0.03, L: Math.round(L / 0.04) * 0.04 } : null },
     };
+  },
+};
+
+/* ===== figures/metronome.js ===== */
+/*
+ * A metronome: a tall tapering case on a plinth with a slot down its front, and in the slot a pendulum on a pivot near
+ * the foot, a weight clamped part way up its rod. Move across it and it ticks: the pendulum swings from side to side
+ * in its slot, a little wider each beat as it gets going. At rest it stands upright. The case is cut once; the
+ * pendulum is cut again as it swings. The slot is cut right through the front so the pendulum is seen in it, never
+ * behind the case.
+ */
+const METRO_PIVOT = 0.12, METRO_Y = 0.1;                                 // the height of the pivot, and how far forward the pendulum swings
+
+/** how far out the case's front is at height z: it leans back as it rises */
+const metroFront = (z) => 0.2 - (0.1 * z) / 0.9;
+
+const metronome = {
+  T: 4, zr: [-0.06, 0.92], S: 380, zm: 0.4,
+  active: [0, 2.4],                                              // the pendulum swings, wider each beat, ending out at one side; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the metronome
+  hint: "move across the metronome to set it ticking",
+  parts: [
+    { id: "case", order: 0, cell: 0.009, box: { x: [-0.5, 0.5], y: [-0.4, 0.4] }, planes: planes(-0.06, 0.92, 0.015), sdf: (x, y, z) => {
+      const half = 0.28 - (0.18 * z) / 0.9, front = metroFront(z), back = -0.2 + (0.1 * z) / 0.9;
+      let d = Math.max(Math.abs(x) - half, y - front, back - y, -z, z - 0.9);                                            // a tapering case
+      d = subtract(d, Math.max(Math.abs(x) - (0.04 + 0.34 * clamp((z - METRO_PIVOT) / 0.7, 0, 1)), METRO_Y - 0.06 - y, 0.06 - z, z - 0.84));   // a slot down the front, wide enough for the swing
+      return Math.min(d, roundBox(x, y, z + 0.03, 0.33, 0.25, 0.02, 0.012));                                              // and a plinth
+    } },
+    { id: "pendulum", order: 1, dynamic: true, cell: 0.006, key: (p) => p.a.toFixed(3), box: { x: [-0.42, 0.42], y: [0.03, 0.17] }, planes: planes(0.08, 0.86, 0.01), sdf: (x, y, z, { a }) => {
+      const dx = x, dz = z - METRO_PIVOT, u = dx * Math.sin(a) + dz * Math.cos(a), v = dx * Math.cos(a) - dz * Math.sin(a);   // along the rod, and across it
+      const rod = Math.max(Math.hypot(v, y - METRO_Y) - 0.012, -u, u - 0.7);
+      const weight = roundBox(v, y - METRO_Y, u - 0.48, 0.035, 0.02, 0.035, 0.012);                                       // the weight, clamped on the rod
+      return Math.min(rod, weight, Math.hypot(x, y - METRO_Y, z - METRO_PIVOT) - 0.03);                                  // and the pivot boss
+    } },
+  ],
+  /**
+   * k, the intensity: how wide it swings.
+   * 0: a small swing · 0.5: a full one · 1: as wide as the slot
+   */
+  step(t, abs, k = 0.5) {
+    const amp = byIntensity(k, [0.15, 0.3, 0.42]), beats = 4.25, e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t));
+    return { case: {}, pendulum: { prm: { a: Math.round(amp * Math.min(1, e * 1.6) * Math.sin(2 * Math.PI * beats * e) * 200) / 200 } } };
+  },
+};
+
+/* ===== figures/mixing-desk.js ===== */
+/*
+ * A mixing desk: a flat console with eight channels, each a long slot with a fader cap in it and three knobs above,
+ * and a row of level meters along the back. Move across it and the faders slide up in a wave from left to right,
+ * each to its own level, the knobs turn, and the meters climb. At rest the faders are down and the meters dark. The
+ * console is cut once; the fader caps are rigid and only slide; the knobs and meters are cut again as they change.
+ */
+const DESK_CH = 8, deskX = (c) => -0.49 + 0.14 * c, DESK_TOP = 0.1;     // how many channels, where each one is, and the console's top
+const deskLevel = (c) => 0.55 + 0.45 * Math.sin(c * 0.9 + 0.6);           // how far up channel c's fader goes, as a share of its travel
+
+const mixingDesk = {
+  T: 4, zr: [0, 0.2], S: 400, zm: 0.06,
+  active: [0, 2.4],                                              // the faders come up in a wave; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the desk
+  hint: "move across the desk to bring the faders up",
+  parts: [
+    { id: "console", order: 0, cell: 0.007, box: { x: [-0.72, 0.72], y: [-0.5, 0.5] }, planes: planes(0, DESK_TOP, 0.012), sdf: (x, y, z) => {
+      let d = roundBox(x, y, z - DESK_TOP / 2, 0.6, 0.38, DESK_TOP / 2 - 0.02, 0.02);
+      for (let c = 0; c < DESK_CH; c++) d = subtract(d, Math.max(Math.abs(x - deskX(c)) - 0.012, Math.abs(y - 0.13) - 0.17, 0.06 - z));   // a fader slot for each channel
+      return subtract(d, Math.max(Math.abs(x) - 0.56, Math.abs(y + 0.33) - 0.03, 0.07 - z));                          // and a recess for the meters
+    } },
+    ...Array.from({ length: DESK_CH }, (_, c) => ({ id: "fader" + c, order: 1 + c, cell: 0.006, box: { x: [deskX(c) - 0.06, deskX(c) + 0.06], y: [0.2, 0.32] }, planes: planes(0.07, 0.15, 0.01),
+      sdf: (x, y, z) => Math.min(roundBox(x - deskX(c), y - 0.26, z - 0.125, 0.032, 0.012, 0.015, 0.01), rcyl(len2(x - deskX(c), y - 0.26), z, 0.008, 0.07, 0.12, 0)) })),   // a cap on a stem in its slot
+    { id: "knobs", order: 10, dynamic: true, cell: 0.005, key: (p) => p.e.toFixed(2), box: { x: [-0.58, 0.58], y: [-0.36, -0.03] }, planes: planes(0.07, 0.15, 0.01), sdf: (x, y, z, { e }) => {
+      const c = clamp(Math.round((x + 0.49) / 0.14), 0, DESK_CH - 1), cx = deskX(c);
+      if (y < -0.28) {                                                                                                  // a meter: a column of cells, lit up to its level
+        const lit = Math.round(6 * deskLevel(c) * e), cell = clamp(Math.round((x - cx + 0.05) / 0.02), 0, 5);
+        return cell < lit ? Math.max(roundBox(x - cx - (cell * 0.02 - 0.05), y + 0.33, z - 0.085, 0.006, 0.02, 0.012, 0.003), 0) : 1;
+      }
+      const row = clamp(Math.round((-0.08 - y) / 0.07), 0, 2), ky = -0.08 - 0.07 * row, a = -2.2 + 2.6 * e * (0.4 + 0.3 * row + 0.1 * (c % 3));
+      const rr = len2(x - cx, y - ky), ux = Math.cos(a), uy = Math.sin(a), along = (x - cx) * ux + (y - ky) * uy, across = -(x - cx) * uy + (y - ky) * ux;
+      const knob = rcyl(rr, z, 0.026, DESK_TOP - 0.01, DESK_TOP + 0.04, 0.01);
+      return Math.min(knob, Math.max(Math.abs(across) - 0.006, Math.abs(along - 0.012) - 0.014, Math.abs(z - DESK_TOP - 0.045) - 0.006));   // and a pointer on top, turned to its setting
+    } },
+  ],
+  /**
+   * k, the intensity: how far the faders travel.
+   * 0: a third of the way · 0.5: well up · 1: right to the top of their slots
+   */
+  step(t, abs, k = 0.5) {
+    const travel = byIntensity(k, [0.1, 0.2, 0.28]), back = 1 - sm(2.9, 3.8, t), out = {};
+    for (let c = 0; c < DESK_CH; c++) out["fader" + c] = { off: [0, -travel * deskLevel(c) * sm(0.15 * c, 0.15 * c + 1.2, t) * back, 0] };
+    out.console = {}; out.knobs = { prm: { e: Math.round(sm(0, 2.4, t) * back * 40) / 40 } };
+    return out;
+  },
+};
+
+/* ===== figures/orrery.js ===== */
+/*
+ * An orrery: a round plinth, a column with the sun on top, and five planets each on its own arm from the column, the
+ * arms stacked at different heights, one planet ringed and one with a moon. Move across it and the planets go round
+ * the sun, the inner ones fastest. At rest they are lined up on one side. The plinth, column and sun are cut once; the
+ * arms and planets are cut again as they turn.
+ */
+const ORBITS = [                                                         // the arm's height, the orbit's radius, the planet's radius, its speed, and whether it has a ring or a moon
+  { z: 0.12, R: 0.22, p: 0.03, w: 4.1, d: "" }, { z: 0.2, R: 0.32, p: 0.04, w: 1.6, d: "" }, { z: 0.28, R: 0.43, p: 0.045, w: 1.0, d: "moon" },
+  { z: 0.36, R: 0.54, p: 0.055, w: 0.53, d: "ring" }, { z: 0.44, R: 0.64, p: 0.04, w: 0.3, d: "" },
+];
+
+const orrery = {
+  T: 4, zr: [-0.08, 0.72], S: 330, zm: 0.28,
+  active: [0, 2.4],                                              // the planets go round; the pose at 0 is the rest pose, lined up
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the orrery
+  hint: "move across the orrery to run the planets",
+  parts: [
+    { id: "stand", order: 0, cell: 0.01, box: { x: [-0.45, 0.45], y: [-0.45, 0.45] }, planes: planes(-0.08, 0.72, 0.012), sdf: (x, y, z) => {
+      const r = len2(x, y);
+      return Math.min(rcyl(r, z, 0.36, -0.08, 0, 0.02), rcyl(r, z, 0.035, 0, 0.56, 0.01), Math.hypot(x, y, z - 0.62) - 0.09);   // a plinth, a column, the sun
+    } },
+    { id: "planets", order: 1, dynamic: true, cell: 0.02, key: (p) => p.a.toFixed(3), box: { x: [-0.76, 0.76], y: [-0.76, 0.76] }, planes: planes(0.08, 0.56, 0.016), sdf: (x, y, z, { a }) => {
+      let d = 1;
+      for (const o of ORBITS) {
+        if (Math.abs(z - o.z - 0.05) > 0.13 || len2(x, y) > o.R + 0.13) continue;                                     // too far to matter
+        const th = o.w * a, px = o.R * Math.cos(th), py = o.R * Math.sin(th), t = clamp((x * px + y * py) / (o.R * o.R), 0, 1);
+        const arm = Math.hypot(x - t * px, y - t * py, z - o.z) - 0.016;                                              // the arm, from the column to the planet
+        const post = rcyl(len2(x - px, y - py), z, 0.012, o.z, o.z + 0.05, 0);
+        const ball = Math.hypot(x - px, y - py, z - o.z - 0.05 - o.p) - o.p;                                          // the planet, on a short post at the arm's end
+        d = Math.min(d, arm, post, ball);
+        if (o.d === "ring") d = Math.min(d, Math.max(Math.abs(len2(x - px, y - py) - o.p * 1.8) - 0.018, Math.abs(z - o.z - 0.05 - o.p) - 0.006));
+        if (o.d === "moon") d = Math.min(d, Math.hypot(x - px - 0.08 * Math.cos(4 * th), y - py - 0.08 * Math.sin(4 * th), z - o.z - 0.05 - o.p) - 0.018);
+      }
+      return d;
+    } },
+  ],
+  /**
+   * k, the intensity: how far the planets go round.
+   * 0: the innermost half way round · 0.5: once round · 1: twice round
+   */
+  step(t, abs, k = 0.5) {
+    const turns = byIntensity(k, [0.5, 1, 2]), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t));
+    return { stand: {}, planets: { prm: { a: Math.round((turns * 2 * Math.PI * e) / 4.1 * 300) / 300 } } };
   },
 };
 
@@ -1669,6 +1947,55 @@ const seedling = {
   step(t, abs, k = 0.5) {
     const tall = byIntensity(k, [0.45, 0.7, 0.95]), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t));
     return { pot: {}, plant: { prm: { h: Math.round((0.08 + (tall - 0.08) * e) * 40) / 40 } } };
+  },
+};
+
+/* ===== figures/sewing-machine.js ===== */
+/*
+ * A sewing machine: a flat bed, a pillar on the right, an arm across the top to a head on the left, a spool of thread
+ * on the arm and a handwheel on the right end. Under the head a needle hangs over a strip of cloth with a seam already
+ * stitched along it. Move across it and it sews: the needle pumps down through the cloth and up again, the cloth feeds
+ * to the left a stitch at a time, and the handwheel turns. At rest the needle is up. The machine is cut once; the
+ * needle and the cloth are rigid and only move; the handwheel is cut again as it turns.
+ */
+const SEW_NEEDLE_X = -0.42, SEW_BED = 0.08;                              // where the needle comes down, and the top of the bed
+
+const sewingMachine = {
+  T: 4, zr: [0, 0.74], S: 360, zm: 0.3,
+  active: [0, 2.4],                                              // it sews a run of stitches; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the machine
+  hint: "move across the machine to sew",
+  parts: [
+    { id: "machine", order: 0, cell: 0.009, box: { x: [-0.75, 0.75], y: [-0.4, 0.4] }, planes: planes(0, 0.74, 0.015), sdf: (x, y, z) => {
+      let d = roundBox(x, y, z - SEW_BED / 2, 0.58, 0.24, SEW_BED / 2 - 0.015, 0.015);                                 // the bed
+      d = smin(d, roundBox(x - 0.42, y, z - 0.3, 0.08, 0.1, 0.24, 0.04), 0.04);                                       // the pillar
+      d = smin(d, roundBox(x, y, z - 0.52, 0.42, 0.07, 0.06, 0.05), 0.05);                                            // the arm
+      d = smin(d, roundBox(x - SEW_NEEDLE_X, y, z - 0.44, 0.06, 0.08, 0.15, 0.04), 0.04);                              // the head
+      d = Math.min(d, rcyl(len2(x - 0.05, y), z, 0.012, 0.6, 0.74, 0.004), rcyl(len2(x - 0.05, y), z, 0.05, 0.62, 0.7, 0.012));   // a spool on its pin
+      return Math.min(d, roundBox(x - SEW_NEEDLE_X - 0.03, y, z - 0.105, 0.04, 0.04, 0.008, 0.006));                   // the presser foot
+    } },
+    { id: "needle", order: 1, cell: 0.005, box: { x: [SEW_NEEDLE_X - 0.05, SEW_NEEDLE_X + 0.05], y: [-0.05, 0.05] }, planes: planes(0.1, 0.32, 0.008), sdf: (x, y, z) =>
+      rcyl(len2(x - SEW_NEEDLE_X, y), z, 0.012 - 0.006 * clamp((0.2 - z) / 0.09, 0, 1), 0.11, 0.31, 0.004) },        // a needle, fine at its point
+    { id: "cloth", order: 2, cell: 0.008, box: { x: [-0.75, 0.75], y: [-0.25, 0.25] }, planes: planes(SEW_BED, SEW_BED + 0.024, 0.008), sdf: (x, y, z) => {
+      const sheet = Math.max(Math.abs(x + 0.05) - 0.5, Math.abs(y) - 0.16, Math.abs(z - SEW_BED - 0.006) - 0.005);   // a strip of cloth on the bed
+      const stitch = ((((x + 0.05) % 0.06) + 0.06) % 0.06) - 0.03;                                                      // a stitch every 0.06, already sewn to the right of the needle
+      return Math.min(sheet, Math.max(Math.abs(stitch) - 0.018, Math.abs(y) - 0.008, Math.abs(z - SEW_BED - 0.016) - 0.005, SEW_NEEDLE_X + 0.04 - x, x - 0.45));
+    } },
+    { id: "wheel", order: 3, dynamic: true, cell: 0.008, key: (p) => p.ph.toFixed(2), box: { x: [0.45, 0.68], y: [-0.22, 0.22] }, planes: planes(0.32, 0.68, 0.012), sdf: (x, y, z, { ph }) => {
+      const r = len2(y, z - 0.5), th = Math.atan2(z - 0.5, y) + ph;
+      return rcyl(r, x, 0.14 + 0.01 * Math.cos(12 * th), 0.5, 0.6, 0.02);                                             // a knurled handwheel on the end
+    } },
+  ],
+  /**
+   * k, the intensity: how many stitches it sews.
+   * 0: three · 0.5: six · 1: ten
+   */
+  step(t, abs, k = 0.5) {
+    const stitches = Math.round(byIntensity(k, [3, 6, 10])), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t)), q = stitches * e;
+    return {
+      machine: {}, needle: { off: [0, 0, -0.075 * (0.5 - 0.5 * Math.cos(2 * Math.PI * q))] }, cloth: { off: [-0.06 * q, 0, 0] },
+      wheel: { prm: { ph: Math.round(2 * Math.PI * q * 25) / 25 } },
+    };
   },
 };
 
@@ -2210,7 +2537,7 @@ const windmill = {
 
 /* ===== figures/index.js ===== */
 /** every figure the page offers, in the order of its buttons */
-const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack, typewriter, printer, "gear train": gearTrain, "cassette deck": cassetteDeck };
+const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack, typewriter, printer, "gear train": gearTrain, "cassette deck": cassetteDeck, "sewing machine": sewingMachine, "cash register": cashRegister, orrery, metronome, letterpress, "mixing desk": mixingDesk, "film projector": filmProjector };
 
 window.Contour = { createPlayer, SCENES, RULE, VIEW, SPLIT, MOTION, LEVELS, GAP_RANGE };
 })();

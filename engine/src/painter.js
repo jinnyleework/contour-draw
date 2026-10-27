@@ -46,7 +46,7 @@ export function paint(items, scene, view = VIEW, rule = RULE, pulse = 1, shift =
     for (const l of sh.loops) {
       const n = l.length, key = l.map((p, i) => {
         const q = l[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], m = Math.hypot(dx, dy) || 1;
-        const facing = Math.abs((-dy * s + dx * c) / m);                    // 0 on a silhouette, 1 facing you
+        const facing = Math.min(1, Math.abs((-dy * s + dx * c) / m));       // 0 on a silhouette, 1 facing you (capped: rounding can land a hair over 1, and the pow below would be NaN)
         const near = clamp(0.5 + ((p[0] + q[0]) * s + (p[1] + q[1]) * c) / 4.8, 0, 1);   // 0 far, 1 near
         const w = rule.base * pulse * (0.3 + 2.3 * Math.pow(1 - facing, 1.5) * rule.contrast + 0.45 * (1 - rule.contrast)) * (1 - rule.depth * 0.6 * (1 - near));
         const o = clamp(fadeO * (1 - rule.depth * 0.7 * (1 - near)), 0.1, 1);
@@ -57,7 +57,7 @@ export function paint(items, scene, view = VIEW, rule = RULE, pulse = 1, shift =
       if (k < 0) { emit(key[0], P2, true); continue; }
       for (let i = 0; i < n;) {
         const v = key[(k + i) % n], run = [P2[(k + i) % n]];
-        while (i < n && key[(k + i) % n] === v) { i++; run.push(P2[(k + i) % n]); }
+        do { i++; run.push(P2[(k + i) % n]); } while (i < n && key[(k + i) % n] === v);   // always steps, so a bad key cannot hang the page
         emit(v, run, false);
       }
     }
