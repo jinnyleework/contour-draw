@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Builds the site's scripts from engine/, so the pages work over file:// and on GitHub Pages alike:
+ * Builds the site's scripts from engine/, so the pages work over file:// and on Vercel alike (vercel.json runs this before it serves site/):
  *
  *   assets/contour-figures.js  the contour engine and every figure in engine/figures/, joined by the engine's own
  *                              build, as a classic script with the pieces a page needs on window.Contour
