@@ -123,6 +123,13 @@ did before it had an intensity. Anything that is not a number is 0.5; the rest i
 | printer | how much of the page comes out; how many passes the head makes | a third; 2 | most; 4 | all; 6 |
 | gear train | how far the largest gear turns | half a turn | one turn | two turns |
 | cassette deck | how much tape winds across | a third | two thirds | all of it |
+| sewing machine | how many stitches it sews | 3 | 6 | 10 |
+| cash register | how far the drawer springs out | ajar (0.14) | open (0.24) | right out (0.32) |
+| orrery | how far the planets go round (the innermost) | half a turn | one turn | two turns |
+| metronome | how wide the pendulum swings | 0.15 rad | 0.3 | 0.42 |
+| letterpress | how heavy the drawing goes as the platen bites | +0.3 | +1 | +1.8 |
+| mixing desk | how far the faders travel | 0.1 | 0.2 | 0.28 |
+| film projector | how far the beam reaches | 0.35 | 0.55 | 0.72 |
 | hover split | how wide the gap opens (a fraction of its cap) | 0.35 | 0.7 | 1 |
 
 A scene reads it as the third argument of `step`; the engine keeps `MOTION.intensity` (animate) and `SPLIT.intensity`
@@ -170,7 +177,7 @@ tap reads as a look and not a flash. The drawing sets `touch-action: none`, so t
 | `src/painter.js` | sheets to svg markup, rule A |
 | `src/scene.js` | a scene at time t |
 | `src/player.js` | the only file that touches the page |
-| `figures/` | rocket, camera, binoculars, lightbulb, record player, lighthouse, toaster, vault door, carousel, pocket watch, telescope, jack-in-the-box, windmill, gyroscope, umbrella, periscope submarine, seedling, drawer chest, bellows camera, percolator, terrain, volcano, ripple tank, tile pyramid, spiral stair, ring tower, funnel, hourglass, whirlpool, crystal cluster, honeycomb, card fan, tile stack, typewriter, printer, gear train, cassette deck |
+| `figures/` | rocket, camera, binoculars, lightbulb, record player, lighthouse, toaster, vault door, carousel, pocket watch, telescope, jack-in-the-box, windmill, gyroscope, umbrella, periscope submarine, seedling, drawer chest, bellows camera, percolator, terrain, volcano, ripple tank, tile pyramid, spiral stair, ring tower, funnel, hourglass, whirlpool, crystal cluster, honeycomb, card fan, tile stack, typewriter, printer, gear train, cassette deck, sewing machine, cash register, orrery, metronome, letterpress, mixing desk, film projector |
 | `tools/build.mjs` | joins the modules and every figure in `figures/` into `dist/actions.html` |
 | `tools/check.mjs` | checks a figure: its declaration, `step()`, that its shapes close inside their boxes, the cursor mapping, intensity, frame size and speed |
 | `tools/new-figure.mjs` | writes a working template figure and registers it (`--remove` undoes it) |
