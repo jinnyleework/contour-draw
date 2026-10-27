@@ -1,0 +1,17 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="0.9">
+  <!-- the mark: 14 slices of one raindrop, one above the other, coming to a point as they rise -->
+  <ellipse cx="16" cy="28.80" rx="4.31" ry="0.60"/>
+  <ellipse cx="16" cy="26.92" rx="6.27" ry="0.75"/>
+  <ellipse cx="16" cy="25.05" rx="7.19" ry="0.86"/>
+  <ellipse cx="16" cy="23.17" rx="7.55" ry="0.91"/>
+  <ellipse cx="16" cy="21.29" rx="7.56" ry="0.91"/>
+  <ellipse cx="16" cy="19.42" rx="7.30" ry="0.88"/>
+  <ellipse cx="16" cy="17.54" rx="6.83" ry="0.82"/>
+  <ellipse cx="16" cy="15.66" rx="6.20" ry="0.74"/>
+  <ellipse cx="16" cy="13.78" rx="5.44" ry="0.65"/>
+  <ellipse cx="16" cy="11.91" rx="4.58" ry="0.60"/>
+  <ellipse cx="16" cy="10.03" rx="3.67" ry="0.60"/>
+  <ellipse cx="16" cy="8.15" rx="2.71" ry="0.60"/>
+  <ellipse cx="16" cy="6.28" rx="1.76" ry="0.60"/>
+  <ellipse cx="16" cy="4.40" rx="0.86" ry="0.60"/>
+</svg>

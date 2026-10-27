@@ -1,0 +1,9 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="1.1">
+  <!-- skill: the logo being drawn, the lower slices whole, the next begun along its front, the rest still to come -->
+  <ellipse cx="16.00" cy="28.40" rx="4.60" ry="0.80"/>
+  <ellipse cx="16.00" cy="25.82" rx="6.96" ry="1.11"/>
+  <ellipse cx="16.00" cy="23.24" rx="7.59" ry="1.21"/>
+  <ellipse cx="16.00" cy="20.67" rx="7.36" ry="1.18"/>
+  <ellipse cx="16.00" cy="18.09" rx="6.59" ry="1.05"/>
+  <path d="M10.55 15.51A5.45 0.87 0 0 0 21.45 15.51"/>
+</svg>

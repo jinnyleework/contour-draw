@@ -1,0 +1,7 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="1.1">
+  <!-- start: where the drop lands, rings going out across one plane -->
+  <ellipse cx="16.00" cy="20.00" rx="2.20" ry="0.80"/>
+  <ellipse cx="16.00" cy="20.00" rx="5.60" ry="1.68"/>
+  <ellipse cx="16.00" cy="20.00" rx="9.40" ry="2.82"/>
+  <ellipse cx="16.00" cy="20.00" rx="13.40" ry="4.02"/>
+</svg>

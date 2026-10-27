@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Actions</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0b0c; color: #8a8a90; font: 11px/1 ui-monospace, Menlo, monospace; }
+  body { display: grid; grid-template-rows: auto 1fr auto; }
+  nav, .controls { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 12px 14px; }
+  button { font: inherit; padding: 8px 10px; background: none; color: #8a8a90; border: 1px solid #29292d; border-radius: 6px; cursor: pointer; }
+  button[aria-pressed="true"] { color: #e6e6e6; border-color: #e6e6e6; }
+  svg { width: min(100%, 78vh); height: auto; margin: auto; display: block; overflow: hidden; }
+  .fill { fill: #0b0b0c; stroke: none; fill-rule: evenodd; }
+  .ln { fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  label { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { width: 120px; accent-color: #e6e6e6; }
+  output { min-width: 4ch; color: #e6e6e6; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<svg id="art" viewBox="0 0 600 600" aria-label="An object performing its action, drawn as stacked slices"></svg>
+<div class="controls" id="controls"></div>
+<script>
+/* ---------- the look: rule A (weight and depth), fixed ---------- */
+const RULE = { base: 1.0, contrast: 0.7, depth: 0.6, fade: 0.5 };
+const VIEW = { azimuth: 35, tilt: 0.5 };
+const GAP = 0.03, CELL = 0.0144;
+
+/* ---------- shapes ---------- */
+const len2 = (a, b) => Math.hypot(a, b);
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const subtract = (a, b) => Math.max(a, -b);
+const roundBox = (x, y, z, bx, by, bz, r) => { const qx = Math.abs(x) - bx, qy = Math.abs(y) - by, qz = Math.abs(z) - bz; return Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qy, qz), 0) - r; };
+const rcyl = (ra, c, r, c0, c1, rr) => { const q1 = ra - (r - rr), q2 = Math.abs(c - (c0 + c1) / 2) - ((c1 - c0) / 2 - rr); return Math.hypot(Math.max(q1, 0), Math.max(q2, 0)) + Math.min(Math.max(q1, q2), 0) - rr; };
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), r2 = (n) => Math.round(n * 100) / 100;
+const sm = (a, b, t) => { const u = clamp((t - a) / (b - a), 0, 1); return u * u * (3 - 2 * u); };    // smoothstep from a to b
+
+/* ---------- marching squares on a rectangular grid ---------- */
+function contour(f, nx, ny, L) {
+  const W = nx + 1, at = (i, j) => f[j * W + i], adj = new Map(), pos = new Map();
+  const point = (key) => {
+    let p = pos.get(key); if (p) return p;
+    const [k, i, j] = key.split(",").map((s, n) => n ? +s : s), [i2, j2] = k === "h" ? [i + 1, j] : [i, j + 1];
+    const v0 = at(i, j), v1 = at(i2, j2), t = (L - v0) / (v1 - v0);
+    p = [i + (i2 - i) * t, j + (j2 - j) * t]; pos.set(key, p); return p;
+  };
+  const link = (a, b) => { (adj.get(a) || adj.set(a, []).get(a)).push(b); (adj.get(b) || adj.set(b, []).get(b)).push(a); };
+  for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+    const a = at(i, j) >= L, b = at(i + 1, j) >= L, c = at(i + 1, j + 1) >= L, d = at(i, j + 1) >= L;
+    if (a === b && b === c && c === d) continue;
+    const top = `h,${i},${j}`, right = `v,${i + 1},${j}`, bottom = `h,${i},${j + 1}`, left = `v,${i},${j}`, cross = [];
+    if (a !== b) cross.push(top); if (b !== c) cross.push(right); if (d !== c) cross.push(bottom); if (a !== d) cross.push(left);
+    if (cross.length === 2) link(cross[0], cross[1]);
+    else if (cross.length === 4) {
+      const mid = (at(i, j) + at(i + 1, j) + at(i + 1, j + 1) + at(i, j + 1)) / 4 >= L;
+      if (mid === a) { link(top, right); link(left, bottom); } else { link(top, left); link(right, bottom); }
+    }
+  }
+  const loops = [], seen = new Set();
+  for (const start of adj.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let prev = null, cur = start;
+    while (cur && !seen.has(cur)) { seen.add(cur); loop.push(point(cur)); const next = adj.get(cur).find((n) => n !== prev && !seen.has(n)); prev = cur; cur = next; }
+    if (loop.length > 3) loops.push(loop);
+  }
+  return loops;
+}
+
+/* ---------- parts: an object is a few parts, each sliced inside its own small box ---------- */
+const planes = (a, b) => { const n = Math.max(2, Math.round((b - a) / GAP)); return Array.from({ length: n }, (_, k) => a + ((k + 0.5) / n) * (b - a)); };
+function slicePart(part, prm) {
+  const [x0, x1] = part.box.x, [y0, y1] = part.box.y, nx = Math.max(4, Math.round((x1 - x0) / CELL)), ny = Math.max(4, Math.round((y1 - y0) / CELL));
+  const cx = (x1 - x0) / nx, cy = (y1 - y0) / ny, f = part.buf && part.buf.length === (nx + 1) * (ny + 1) ? part.buf : (part.buf = new Float32Array((nx + 1) * (ny + 1))), out = [];
+  for (const z of part.planes) {
+    for (let j = 0; j <= ny; j++) for (let i = 0; i <= nx; i++) f[j * (nx + 1) + i] = -part.sdf(x0 + i * cx, y0 + j * cy, z, prm);
+    const loops = contour(f, nx, ny, 0).map((l) => l.map(([i, j]) => [x0 + i * cx, y0 + j * cy]));
+    if (loops.length) out.push({ z, loops });
+  }
+  return out;
+}
+/* a static part is sliced once; a dynamic one is re-sliced whenever the key of its parameters changes */
+function sheetsOf(part, prm) {
+  if (!part.dynamic) return part.sheets ||= slicePart(part);
+  const key = part.key(prm);
+  if (part.cacheKey !== key) { part.cacheKey = key; part.cache = prm ? slicePart(part, prm) : []; }
+  return part.cache;
+}
+
+/* ---------- the scenes: parts, and what each part does over time ---------- */
+const tube = (s) => (x, y, z) => {
+  const cx = s * 0.36, R = (rad, y0, y1, rr) => rcyl(len2(x - cx, z), y, rad, y0, y1, rr);
+  let d = smin(R(0.3, -0.4, 0.4, 0.06), R(0.35, 0.3, 0.78, 0.05), 0.05);
+  d = smin(d, R(0.2, -0.72, -0.3, 0.04), 0.05);
+  return subtract(subtract(d, R(0.29, 0.7, 0.95, 0)), R(0.12, -0.9, -0.64, 0));
+};
+const SCENES = {
+  /* the rocket sits, ignites and shakes, rises a short way on a flame that swells, hovers on it, then settles as the flame withdraws */
+  rocket: {
+    T: 9, zr: [-0.86, 0.98], S: 150, zm: 0.1,
+    parts: [
+      { id: "body", order: 0, box: { x: [-0.7, 0.7], y: [-0.7, 0.7] }, planes: planes(-0.86, 0.98), sdf: (x, y, z) => {
+        const rho = len2(x, y), t = (z - 0.3) / 0.67;
+        const r = z > 0.3 ? 0.28 * Math.pow(Math.max(0, 1 - t), 0.65) : z > -0.6 ? 0.28 : 0.17 + (-0.6 - z) * 0.4;
+        let d = subtract(Math.max(rho - r, z - 0.97, -0.85 - z), Math.max(rho - 0.12, z + 0.72));
+        const f = 0.96, u0 = x * Math.cos(f) + y * Math.sin(f), v0 = -x * Math.sin(f) + y * Math.cos(f);
+        d = subtract(subtract(d, rcyl(len2(v0, z - 0.1), u0, 0.12, 0.2, 0.5, 0)), rcyl(len2(v0, z + 0.2), u0, 0.07, 0.2, 0.5, 0));
+        for (let k = 0; k < 3; k++) {
+          const a = f + Math.PI / 3 + (k * 2 * Math.PI) / 3, u = x * Math.cos(a) + y * Math.sin(a), v = -x * Math.sin(a) + y * Math.cos(a);
+          d = smin(d, Math.max(Math.abs(v) - 0.03, 0.15 - u, -0.7 - z, z + 0.1, (u - (0.62 - 0.55 * (z + 0.7))) * 0.8), 0.04);
+        }
+        return d;
+      } },
+      { id: "flame", order: 1, dynamic: true, key: (p) => p ? p.L.toFixed(2) + ":" + p.tm.toFixed(2) : "", box: { x: [-0.26, 0.26], y: [-0.26, 0.26] }, planes: planes(-2.15, -0.86), sdf: (x, y, z, { L, tm }) => {
+        const s = (-0.85 - z) / L;                                       // 0 at the nozzle, 1 at the tip of the flame
+        if (s < 0 || s > 1) return 1;
+        const rho = len2(x, y), rad = 0.11 * (0.8 + 0.4 * L) * Math.pow(1 - s, 0.9) * (1 + s * (0.18 * Math.sin(s * 16 - tm * 28) + 0.25 * Math.sin(Math.atan2(y, x) * 3 + tm * 11)));
+        return rho - rad;
+      } },
+    ],
+    step(t, abs) {
+      let z = 0, L = 0, amp = 0;
+      if (t < 1.2) { /* waiting on the pad */ }
+      else if (t < 2.6) { const u = (t - 1.2) / 1.4; L = 0.12 + 0.5 * u; amp = 0.005 * u; }                                          // ignition: the flame catches and grows
+      else if (t < 5.2) { const u = (t - 2.6) / 2.6, e = u * u * (3 - 2 * u); z = 0.3 * e; L = 0.62 + 0.62 * e; amp = 0.006 * (1 - e) + 0.0015; }   // a short, heavy lift while the flame swells
+      else if (t < 6.4) { z = 0.3; L = 1.24 + 0.05 * Math.sin((t - 5.2) * 9); amp = 0.0015; }                                         // hovering on a full, throbbing flame
+      else if (t < 8.2) { const u = (t - 6.4) / 1.8, e = u * u * (3 - 2 * u); z = 0.3 * (1 - e); L = 1.24 * (1 - e); amp = 0.0015 * (1 - e); }   // it settles and the flame withdraws
+      const off = [amp * Math.sin(abs * 70), amp * 0.7 * Math.cos(abs * 53), z];
+      return { body: { off }, flame: { off, prm: L > 0.03 ? { L: Math.round(L * 50) / 50, tm: Math.floor(abs * 24) / 24 } : null } };
+    },
+  },
+  /* the lens zooms out on two telescoping stages, the shutter button dips, the whole drawing flashes heavier for a beat, the lens comes back */
+  camera: {
+    T: 6.5, zr: [-0.4, 0.56], S: 195, zm: 0.08,
+    parts: [
+      { id: "body", order: 0, box: { x: [-0.9, 0.9], y: [-0.3, 0.32] }, planes: planes(-0.4, 0.56), sdf: (x, y, z) => {
+        let d = smin(roundBox(x, y, z, 0.74, 0.18, 0.3, 0.06), roundBox(x, y + 0.02, z - 0.38, 0.18, 0.12, 0.1, 0.05), 0.03);
+        d = smin(d, roundBox(x - 0.62, y - 0.2, z, 0.1, 0.06, 0.28, 0.04), 0.04);
+        d = smin(d, rcyl(len2(x - 0.12, z), y, 0.31, 0.1, 0.26, 0.04), 0.03);
+        d = subtract(d, roundBox(x + 0.55, y - 0.24, z - 0.12, 0.08, 0.03, 0.05, 0.01));
+        return Math.min(d, rcyl(len2(x + 0.5, y), z, 0.12, 0.26, 0.36, 0.03));
+      } },
+      { id: "lens", order: 1, dynamic: true, key: (p) => p.zoom.toFixed(2), box: { x: [-0.2, 0.44], y: [0.04, 0.85] }, planes: planes(-0.3, 0.3), sdf: (x, y, z, { zoom }) => {
+        const lr = len2(x - 0.12, z), L1 = 0.42 + 0.14 * zoom, L2 = L1 + 0.16 * zoom, Lt = L2;
+        let d = Math.min(rcyl(lr, y, 0.26, 0.1, L1, 0.05), rcyl(lr, y, 0.21, L1 - 0.1, L2, 0.04));
+        d = subtract(d, rcyl(lr, y, 0.17, Lt - 0.07, Lt + 0.3, 0));
+        return Math.min(d, rcyl(lr, y, 0.1, Lt - 0.11, Lt - 0.01, 0.03));
+      } },
+      { id: "button", order: 2, box: { x: [0.44, 0.66], y: [-0.11, 0.11] }, planes: planes(0.22, 0.4), sdf: (x, y, z) => rcyl(len2(x - 0.55, y), z, 0.07, 0.26, 0.36, 0.02) },
+    ],
+    step(t) {
+      const zoom = sm(1.2, 2.2, t) * (1 - sm(3.8, 4.8, t)), press = sm(2.55, 2.7, t) * (1 - sm(2.85, 3.2, t));
+      return { body: {}, lens: { prm: { zoom } }, button: { off: [0, 0, -0.04 * press] }, pulse: 1 + 1.4 * Math.exp(-(((t - 2.75) / 0.09) ** 2)) };
+    },
+  },
+  /* the barrels slide apart and together to fit the eyes while the knurled focus wheel turns, one way and back */
+  binoculars: {
+    T: 12, zr: [-0.42, 0.5], S: 195, zm: 0.04,
+    parts: [
+      { id: "hinge", order: 0, box: { x: [-0.16, 0.16], y: [-0.36, 0.36] }, planes: planes(-0.03, 0.19), sdf: (x, y, z) => rcyl(len2(x, z - 0.08), y, 0.1, -0.3, 0.3, 0.05) },
+      { id: "tubeL", order: 1, box: { x: [-0.8, 0.08], y: [-0.8, 0.86] }, planes: planes(-0.4, 0.4), sdf: tube(-1) },
+      { id: "tubeR", order: 2, box: { x: [-0.08, 0.8], y: [-0.8, 0.86] }, planes: planes(-0.4, 0.4), sdf: tube(1) },
+      { id: "wheel", order: 3, dynamic: true, key: (p) => p.ph.toFixed(2), box: { x: [-0.26, 0.26], y: [-0.18, 0.18] }, planes: planes(0.14, 0.46), sdf: (x, y, z, { ph }) => {
+        const dz = z - 0.3, rad = 0.125 + 0.02 * Math.cos(10 * (Math.atan2(dz, y) + ph));   // ten teeth, turned by ph
+        return Math.max(len2(y, dz) - rad, Math.abs(x) - 0.2);
+      } },
+    ],
+    step(t) {
+      const ipd = 0.07 * (0.5 - 0.5 * Math.cos((2 * Math.PI * t) / 12)), ph = Math.round(3 * Math.sin((2 * Math.PI * t) / 8) / 0.03) * 0.03;
+      return { hinge: {}, tubeL: { off: [-ipd, 0, 0] }, tubeR: { off: [ipd, 0, 0] }, wheel: { prm: { ph } } };
+    },
+  },
+};
+
+/* ---------- the painter: every sheet from every part, bottom up, with rule A's weights ---------- */
+const WBINS = 8, OBINS = 4, svg = document.getElementById("art");
+function paint(sc, items, pulse) {
+  const az = (VIEW.azimuth * Math.PI) / 180, s = Math.sin(az), c = Math.cos(az), zf = Math.sqrt(1 - VIEW.tilt ** 2), S = sc.S, [z0, z1] = sc.zr;
+  const P = (x, y, z) => [300 + S * (x * c - y * s), 300 + S * ((x * s + y * c) * VIEW.tilt - (z - sc.zm) * zf)];
+  let out = "";
+  for (const { sh, off } of items) {
+    const z = sh.z + off[2], sy = P(off[0], off[1], z)[1];
+    if (sy < -260 || sy > 900) continue;                                    // far off the page
+    const pts = (l) => l.map(([x, y]) => P(x + off[0], y + off[1], z).map(r2).join(" "));
+    const fadeO = 1 - RULE.fade * (1 - clamp((z - z0) / (z1 - z0), 0, 1)), buckets = new Map();
+    out += `<path class="fill" d="${sh.loops.map((l) => "M" + pts(l).join("L") + "Z").join("")}"/>`;
+    for (const l of sh.loops) {
+      const n = l.length, key = l.map((p, i) => {
+        const q = l[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], m = Math.hypot(dx, dy) || 1;
+        const facing = Math.abs((-dy * s + dx * c) / m), near = clamp(0.5 + ((p[0] + q[0]) * s + (p[1] + q[1]) * c) / 4.8, 0, 1);
+        const w = RULE.base * pulse * (0.3 + 2.3 * Math.pow(1 - facing, 1.5) * RULE.contrast + 0.45 * (1 - RULE.contrast)) * (1 - RULE.depth * 0.6 * (1 - near));
+        const o = clamp(fadeO * (1 - RULE.depth * 0.7 * (1 - near)), 0.1, 1);
+        return clamp(Math.round(((w - 0.2) / 3.2) * (WBINS - 1)), 0, WBINS - 1) * OBINS + clamp(Math.round(o * (OBINS - 1)), 0, OBINS - 1);
+      });
+      const P2 = pts(l), emit = (id, run, closed) => { const a = buckets.get(id) || []; a.push("M" + run.join("L") + (closed ? "Z" : "")); buckets.set(id, a); };
+      const k = key.findIndex((v, i) => v !== key[(i + n - 1) % n]);
+      if (k < 0) { emit(key[0], P2, true); continue; }
+      for (let i = 0; i < n;) { const v = key[(k + i) % n], run = [P2[(k + i) % n]]; while (i < n && key[(k + i) % n] === v) { i++; run.push(P2[(k + i) % n]); } emit(v, run, false); }
+    }
+    for (const [id, d] of buckets) out += `<path class="ln" stroke-width="${r2(0.2 + (Math.floor(id / OBINS) / (WBINS - 1)) * 3.2)}" stroke-opacity="${r2(0.1 + 0.9 * ((id % OBINS) / (OBINS - 1)))}" d="${d.join("")}"/>`;
+  }
+  svg.innerHTML = out;
+}
+
+/* ---------- the clock ---------- */
+let current = "rocket", T0 = performance.now(), speed = 1, raf = 0, onScreen = true;
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+function render(now) {
+  const sc = SCENES[current], abs = ((now - T0) / 1000) * speed, t = abs % sc.T, st = sc.step(t, abs), items = [];
+  for (const part of sc.parts) {
+    const a = st[part.id] || {}, sheets = part.dynamic && !a.prm ? [] : sheetsOf(part, a.prm);
+    for (const sh of sheets) items.push({ sh, off: a.off || [0, 0, 0], order: part.order });
+  }
+  items.sort((a, b) => (a.sh.z + a.off[2]) - (b.sh.z + b.off[2]) || a.order - b.order);
+  paint(sc, items, st.pulse || 1);
+}
+function frame(now) { render(now); raf = onScreen && !document.hidden && !reduce ? requestAnimationFrame(frame) : 0; }
+const wake = () => { if (!raf) raf = requestAnimationFrame(frame); };
+new IntersectionObserver((es) => { onScreen = es[0].isIntersecting; if (onScreen) wake(); }).observe(svg);
+document.addEventListener("visibilitychange", wake);
+
+/* ---------- page ---------- */
+const nav = document.getElementById("nav"), controls = document.getElementById("controls");
+const show = (name) => {
+  current = name; T0 = performance.now();
+  [...nav.querySelectorAll("button[data-o]")].forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.o === name)));
+  for (const p of SCENES[name].parts) if (!p.dynamic) sheetsOf(p);        // build the still parts before the first frame
+  if (reduce) render(T0); else wake();
+};
+for (const name of Object.keys(SCENES)) { const b = document.createElement("button"); b.textContent = name; b.dataset.o = name; b.onclick = () => show(name); nav.appendChild(b); }
+const replay = document.createElement("button"); replay.textContent = "replay"; replay.onclick = () => { T0 = performance.now(); wake(); }; nav.appendChild(replay);
+const l = document.createElement("label"), i = document.createElement("input"), o = document.createElement("output");
+Object.assign(i, { type: "range", min: 0.25, max: 2, step: 0.05, value: 1 }); o.textContent = "1.00×";
+i.oninput = () => { const keep = ((performance.now() - T0) / 1000) * speed; speed = +i.value; T0 = performance.now() - (keep / speed) * 1000; o.textContent = speed.toFixed(2) + "×"; };
+l.append("speed", i, o); controls.appendChild(l);
+show(current);
+</script>
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Binoculars, five rule sets</title>
+<style>
+  html, body { margin: 0; background: #0b0b0c; color: #8a8a90; font: 11px/1.5 ui-monospace, Menlo, monospace; }
+  header { padding: 14px 16px 0; }
+  header b { color: #e6e6e6; font-weight: 500; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 0; padding: 8px; }
+  figure { margin: 0; padding: 8px; }
+  figcaption { padding: 0 8px; }
+  figcaption b { display: block; color: #e6e6e6; font-weight: 500; }
+  svg { width: 100%; height: auto; display: block; cursor: grab; touch-action: none; }
+  .fill { fill: #0b0b0c; stroke: none; fill-rule: evenodd; }
+  .ln { fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  .ln.cr { stroke: #9a9aa2; }
+</style>
+</head>
+<body>
+<header><b>Binoculars</b>: the same object under five drawing rule sets. Drag any panel to turn them all. <span id="timing"></span></header>
+<div class="grid" id="grid"></div>
+<script>
+/* ---------- settings ---------- */
+const CFG = { N: 140, gap: 0.03, scale: 195, azimuth: 35, tilt: 0.5 };
+const BOX = 1.15, ZR = [-0.42, 0.5];
+
+/* ---------- 1. the object: signed distance functions, in parts (as in objects.html) ---------- */
+const len2 = (a, b) => Math.hypot(a, b);
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const subtract = (a, b) => Math.max(a, -b);
+const rcyl = (ra, c, r, c0, c1, rr) => {
+  const q1 = ra - (r - rr), q2 = Math.abs(c - (c0 + c1) / 2) - ((c1 - c0) / 2 - rr);
+  return Math.hypot(Math.max(q1, 0), Math.max(q2, 0)) + Math.min(Math.max(q1, q2), 0) - rr;
+};
+const tube = (s) => (x, y, z) => {                       // body, objective bell, eyepiece; lens and eyepiece recessed
+  const cx = s * 0.36, R = (rad, y0, y1, rr) => rcyl(len2(x - cx, z), y, rad, y0, y1, rr);
+  let d = smin(R(0.3, -0.4, 0.4, 0.06), R(0.35, 0.3, 0.78, 0.05), 0.05);
+  d = smin(d, R(0.2, -0.72, -0.3, 0.04), 0.05);
+  return subtract(subtract(d, R(0.29, 0.7, 0.95, 0)), R(0.12, -0.9, -0.64, 0));
+};
+const hinge = (x, y, z) => rcyl(len2(x, z - 0.08), y, 0.1, -0.3, 0.3, 0.05);
+const wheel = (x, y, z) => rcyl(len2(y, z - 0.3), x, 0.12, -0.2, 0.2, 0.03);
+const whole = (x, y, z) => smin(smin(Math.min(tube(-1)(x, y, z), tube(1)(x, y, z)), hinge(x, y, z), 0.06), wheel(x, y, z), 0.04);
+
+/* ---------- 2. marching squares ---------- */
+function contour(f, N, L) {
+  const W = N + 1, at = (i, j) => f[j * W + i];
+  const adj = new Map(), pos = new Map();
+  const point = (key) => {
+    let p = pos.get(key); if (p) return p;
+    const [k, i, j] = key.split(",").map((s, n) => n ? +s : s);
+    const [i2, j2] = k === "h" ? [i + 1, j] : [i, j + 1];
+    const v0 = at(i, j), v1 = at(i2, j2), t = (L - v0) / (v1 - v0);
+    p = [i + (i2 - i) * t, j + (j2 - j) * t]; pos.set(key, p); return p;
+  };
+  const link = (a, b) => { (adj.get(a) || adj.set(a, []).get(a)).push(b); (adj.get(b) || adj.set(b, []).get(b)).push(a); };
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const a = at(i, j) >= L, b = at(i + 1, j) >= L, c = at(i + 1, j + 1) >= L, d = at(i, j + 1) >= L;
+    const top = `h,${i},${j}`, right = `v,${i + 1},${j}`, bottom = `h,${i},${j + 1}`, left = `v,${i},${j}`;
+    const cross = [];
+    if (a !== b) cross.push(top); if (b !== c) cross.push(right); if (d !== c) cross.push(bottom); if (a !== d) cross.push(left);
+    if (cross.length === 2) link(cross[0], cross[1]);
+    else if (cross.length === 4) {
+      const mid = (at(i, j) + at(i + 1, j) + at(i + 1, j + 1) + at(i, j + 1)) / 4 >= L;
+      if (mid === a) { link(top, right); link(left, bottom); } else { link(top, left); link(right, bottom); }
+    }
+  }
+  const loops = [], seen = new Set();
+  for (const start of adj.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let prev = null, cur = start;
+    while (cur && !seen.has(cur)) {
+      seen.add(cur); loop.push(point(cur));
+      const next = adj.get(cur).find((n) => n !== prev && !seen.has(n)); prev = cur; cur = next;
+    }
+    if (loop.length > 3) loops.push(loop);
+  }
+  return loops;
+}
+
+/* ---------- 3. slicing along any axis: a sheet is the cross-section at one plane, in world 3D ---------- */
+const evenPlanes = (a, b, gap) => { const n = Math.max(2, Math.round((b - a) / gap)); return Array.from({ length: n }, (_, k) => a + ((k + 0.5) / n) * (b - a)); };
+function sliceAxis(sdf, ax, planes, N = CFG.N) {
+  const f = new Float32Array((N + 1) * (N + 1)), w = (i) => -BOX + (2 * BOX * i) / N, out = [];
+  const at = (a, b, p) => ax === "z" ? [a, b, p] : ax === "y" ? [a, p, b] : [p, a, b];
+  for (const p of planes) {
+    for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) f[j * (N + 1) + i] = -sdf(...at(w(i), w(j), p));
+    const loops = contour(f, N, 0).map((l) => l.map(([i, j]) => at(w(i), w(j), p)));
+    if (loops.length) out.push({ ax, p, loops });
+  }
+  return out;
+}
+
+/* ---------- 4. the painter: parts back to front, sheets within a part by their own order, each sheet opaque ---------- */
+function camera({ azimuth, tilt, scale }) {
+  const az = (azimuth * Math.PI) / 180, c = Math.cos(az), s = Math.sin(az), zf = Math.sqrt(1 - tilt * tilt);
+  return (x, y, z) => [300 + scale * (x * c - y * s), 290 + scale * ((x * s + y * c) * tilt - z * zf)];
+}
+const r2 = (n) => Math.round(n * 100) / 100;
+const pathOf = (P, runs) => runs.map((r) => "M" + r.pts.map(([x, y, z]) => P(x, y, z).map(r2).join(" ")).join("L") + (r.closed ? "Z" : "")).join("");
+const stroke = (P, runs, w, o, cls = "") => runs.length ? `<path class="ln ${cls}" stroke-width="${w}" stroke-opacity="${o}" d="${pathOf(P, runs)}"/>` : "";
+const closedRuns = (loops) => loops.map((pts) => ({ pts, closed: true }));
+
+function render(svg, parts, cfg) {
+  const P = camera(cfg), az = (cfg.azimuth * Math.PI) / 180, s = Math.sin(az), c = Math.cos(az);
+  const depth = (q) => q[0] * s + q[1] * c;
+  const key = (sh) => sh.ax === "z" ? sh.p : sh.ax === "y" ? sh.p * c : sh.p * s;
+  let out = "";
+  for (const part of parts.slice().sort((a, b) => (a.bias || 0) - (b.bias || 0) || depth(a.center) - depth(b.center))) {
+    for (const sh of part.sheets.slice().sort((a, b) => key(a) - key(b))) {
+      if (sh.pre) out += sh.pre.map((g) => stroke(P, g.runs, g.w, g.o, g.cls)).join("");
+      out += `<path class="fill" d="${pathOf(P, closedRuns(sh.loops))}"/>`;
+      const strokes = typeof sh.strokes === "function" ? sh.strokes(cfg) : sh.strokes || [{ runs: closedRuns(sh.loops), w: 0.9, o: 1 }];
+      out += strokes.map((g) => stroke(P, g.runs, g.w, g.o, g.cls)).join("");
+    }
+  }
+  svg.innerHTML = out;
+}
+
+/* ---------- 5. five rule sets ---------- */
+const zSheets = (planes) => sliceAxis(whole, "z", planes);
+const one = (sheets) => [{ center: [0, 0, 0], sheets }];
+
+/* baseline: even slices, one weight */
+function baseline() { return one(zSheets(evenPlanes(ZR[0], ZR[1], CFG.gap))); }
+
+/* A. line weight and depth: edges that run along the line of sight (silhouettes) are heavy, edges facing you are light;
+      lower slices fade, so height reads as brightness */
+function weight() {
+  const sheets = zSheets(evenPlanes(ZR[0], ZR[1], CFG.gap));
+  const W = [0.3, 0.9, 2.4];
+  for (const sh of sheets) {
+    const t = (sh.p - ZR[0]) / (ZR[1] - ZR[0]), o = r2(0.2 + 0.8 * t);
+    sh.strokes = ({ azimuth }) => {
+      const a = (azimuth * Math.PI) / 180, s = Math.sin(a), c = Math.cos(a), groups = [[], [], []];
+      for (const l of sh.loops) {
+        const n = l.length, cls = l.map((p, i) => {
+          const q = l[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], m = Math.hypot(dx, dy) || 1;
+          const f = Math.abs((-dy * s + dx * c) / m);                    // |normal . view|: 0 on a silhouette, 1 facing you
+          return f < 0.35 ? 2 : f < 0.75 ? 1 : 0;
+        });
+        let k = cls.findIndex((v, i) => v !== cls[(i + n - 1) % n]);
+        if (k < 0) { groups[cls[0]].push({ pts: l, closed: true }); continue; }
+        for (let i = 0; i < n;) {
+          const v = cls[(k + i) % n], run = [l[(k + i) % n]];
+          while (i < n && cls[(k + i) % n] === v) { i++; run.push(l[(k + i) % n]); }
+          groups[v].push({ pts: run, closed: false });
+        }
+      }
+      return groups.map((runs, i) => ({ runs, w: W[i], o }));
+    };
+  }
+  return one(sheets);
+}
+
+/* B. adaptive slicing: put slices where the cross-section changes fastest; spend few on straight sides */
+function adaptive() {
+  const fine = evenPlanes(ZR[0], ZR[1], 0.01), M = 64, area = fine.map((z) => {
+    let n = 0;
+    for (let j = 0; j < M; j++) for (let i = 0; i < M; i++) if (whole(-BOX + (2 * BOX * i) / M, -BOX + (2 * BOX * j) / M, z) < 0) n++;
+    return n;
+  });
+  const d = area.map((_, i) => Math.abs(area[Math.min(i + 2, area.length - 1)] - area[Math.max(i - 2, 0)])), mx = Math.max(...d);
+  const w = d.map((v) => 0.1 + v / mx), cum = [0];
+  w.forEach((v, i) => cum.push(cum[i] + v));
+  const K = 34, planes = [];
+  for (let k = 0, i = 0; k < K; k++) {
+    const target = ((k + 0.5) / K) * cum[cum.length - 1];
+    while (cum[i + 1] < target) i++;
+    planes.push(fine[i]);
+  }
+  return one(zSheets([...new Set(planes)]));
+}
+
+/* C. edges and features: crease lines join sharp corners from slice to slice; every opening is outlined heavier;
+      a ledge (a slice that is wider than the one above it) gets a bright rim; the top slice is the brightest */
+const pip = (pt, poly) => { let inside = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [xi, yi] = poly[i], [xj, yj] = poly[j]; if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < ((xj - xi) * (pt[1] - yi)) / (yj - yi) + xi) inside = !inside; } return inside; };
+const shoelace = (l) => Math.abs(l.reduce((a, p, i) => { const q = l[(i + 1) % l.length]; return a + p[0] * q[1] - q[0] * p[1]; }, 0)) / 2;
+function corners(l) {
+  const n = l.length, k = 4;
+  if (n < 14) return [];
+  const ang = l.map((b, i) => { const a = l[(i - k + n) % n], c = l[(i + k) % n]; return Math.abs(Math.atan2((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]), (b[0] - a[0]) * (c[0] - b[0]) + (b[1] - a[1]) * (c[1] - b[1]))); });
+  return l.filter((_, i) => ang[i] > 0.6 && ang.every((v, j) => { const d = Math.min(Math.abs(i - j), n - Math.abs(i - j)); return d > 6 || v <= ang[i]; }));
+}
+function features() {
+  const sheets = zSheets(evenPlanes(ZR[0], ZR[1], CFG.gap));
+  const info = sheets.map((sh) => {
+    const loops = sh.loops.map((l, i) => ({ l, depth: sh.loops.reduce((d, m, j) => j !== i && pip(l[0], m) ? d + 1 : d, 0) }));
+    return { loops, area: loops.reduce((a, o) => a + (o.depth % 2 ? -1 : 1) * shoelace(o.l), 0), corners: loops.flatMap((o) => corners(o.l)) };
+  });
+  sheets.forEach((sh, k) => {
+    const ledge = k + 1 < sheets.length && info[k + 1].area < info[k].area * 0.97, top = k === sheets.length - 1;
+    sh.strokes = info[k].loops.map((o) => ({
+      runs: closedRuns([o.l]), o: 1, cls: top ? "" : "cr",
+      w: top ? 1.9 : o.depth % 2 ? 1.6 : ledge ? 1.6 : 0.7,        // openings, ledges and the top are outlined heavier
+    }));
+    if (k > 0) {
+      const runs = [];
+      for (const p of info[k].corners) {
+        let best = null, bd = 0.07;
+        for (const q of info[k - 1].corners) { const d = Math.hypot(p[0] - q[0], p[1] - q[1]); if (d < bd) { bd = d; best = q; } }
+        if (best) runs.push({ pts: [best, p], closed: false });
+      }
+      sh.pre = [{ runs, w: 0.7, o: 0.9 }];                           // painted before this slice's fill, so far-side creases stay hidden
+    }
+  });
+  return one(sheets);
+}
+
+/* D. per part: each part is sliced along its own axis, in its own spacing.
+      barrels are turned rings along their length; glass is concentric rings; the hinge keeps flat layers; the wheel is knurled */
+const circle = (cx, y, cz, r, n = 56) => Array.from({ length: n }, (_, i) => [cx + r * Math.cos((i / n) * 2 * Math.PI), y, cz + r * Math.sin((i / n) * 2 * Math.PI)]);
+function perPart() {
+  const parts = [];
+  for (const s of [-1, 1]) {
+    const cx = s * 0.36, sheets = sliceAxis(tube(s), "y", evenPlanes(-0.72, 0.78, 0.028));
+    for (const r of [0.27, 0.225, 0.18, 0.135, 0.09, 0.045]) sheets.push({ ax: "y", p: 0.702, loops: [circle(cx, 0.702, 0, r)] });
+    for (const r of [0.1, 0.06, 0.025]) sheets.push({ ax: "y", p: -0.642, loops: [circle(cx, -0.642, 0, r, 36)] });
+    parts.push({ center: [cx, 0, 0], sheets });
+  }
+  parts.push({ center: [0, 0, 0.08], bias: -1, sheets: sliceAxis(hinge, "z", evenPlanes(-0.03, 0.19, 0.02)) });
+  parts.push({ center: [0, 0, 0.3], bias: 1, sheets: sliceAxis(wheel, "x", evenPlanes(-0.2, 0.2, 0.016)) });
+  return parts;
+}
+
+/* ---------- 6. page ---------- */
+const VARIANTS = [
+  ["baseline", "even slices, one weight", baseline],
+  ["A. weight and depth", "silhouette edges heavy, facing edges light; lower slices fade", weight],
+  ["B. adaptive slicing", "34 slices, placed where the section changes most", adaptive],
+  ["C. edges and features", "creases between slices, heavy openings, ledge rims, bright top", features],
+  ["D. per part", "barrels as rings, glass concentric, hinge layered, wheel knurled", perPart],
+];
+const grid = document.getElementById("grid"), views = [];
+const t0 = performance.now();
+for (const [name, note, build] of VARIANTS) {
+  const fig = document.createElement("figure");
+  fig.innerHTML = `<svg viewBox="0 0 600 540" aria-label="${name}"></svg><figcaption><b>${name}</b>${note}</figcaption>`;
+  grid.appendChild(fig);
+  views.push({ svg: fig.querySelector("svg"), parts: build() });
+}
+document.getElementById("timing").textContent = `built in ${Math.round(performance.now() - t0)} ms`;
+const redraw = () => views.forEach((v) => render(v.svg, v.parts, CFG));
+redraw();
+
+let drag = null;
+grid.addEventListener("pointerdown", (e) => { if (e.target.closest("svg")) drag = { x: e.clientX, y: e.clientY, az: CFG.azimuth, tilt: CFG.tilt }; });
+grid.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (!(e.buttons & 1)) { drag = null; return; }
+  CFG.azimuth = drag.az - (e.clientX - drag.x) * 0.4;
+  CFG.tilt = Math.min(0.95, Math.max(0.15, drag.tilt + (e.clientY - drag.y) * 0.003));
+  redraw();
+});
+for (const t of ["pointerup", "pointercancel", "pointerleave"]) grid.addEventListener(t, () => { drag = null; });
+</script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="1.1">
+  <!-- start: a small drop above the rings it is about to make -->
+  <ellipse cx="16.00" cy="13.20" rx="0.70" ry="0.80"/>
+  <ellipse cx="16.00" cy="10.80" rx="2.89" ry="0.80"/>
+  <ellipse cx="16.00" cy="8.40" rx="2.41" ry="0.80"/>
+  <ellipse cx="16.00" cy="6.00" rx="1.20" ry="0.80"/>
+  <ellipse cx="16.00" cy="3.60" rx="0.70" ry="0.80"/>
+  <ellipse cx="16.00" cy="23.50" rx="3.20" ry="0.90"/>
+  <ellipse cx="16.00" cy="23.50" rx="7.40" ry="2.07"/>
+  <ellipse cx="16.00" cy="23.50" rx="12.00" ry="3.36"/>
+</svg>

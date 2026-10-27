@@ -1,0 +1,12 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="1.1">
+  <!-- skill: a spindle, slices widening to the middle and closing again, a thing turned on a lathe -->
+  <ellipse cx="16.00" cy="27.00" rx="1.08" ry="0.80"/>
+  <ellipse cx="16.00" cy="24.25" rx="4.26" ry="0.80"/>
+  <ellipse cx="16.00" cy="21.50" rx="7.43" ry="1.11"/>
+  <ellipse cx="16.00" cy="18.75" rx="9.68" ry="1.45"/>
+  <ellipse cx="16.00" cy="16.00" rx="10.50" ry="1.57"/>
+  <ellipse cx="16.00" cy="13.25" rx="9.68" ry="1.45"/>
+  <ellipse cx="16.00" cy="10.50" rx="7.43" ry="1.11"/>
+  <ellipse cx="16.00" cy="7.75" rx="4.26" ry="0.80"/>
+  <ellipse cx="16.00" cy="5.00" rx="1.08" ry="0.80"/>
+</svg>

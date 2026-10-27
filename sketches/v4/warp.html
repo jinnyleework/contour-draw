@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Warp</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #0b0b0c; color: #8a8a90; font: 11px/1 ui-monospace, Menlo, monospace; }
+  body { display: grid; grid-template-rows: auto 1fr auto; }
+  nav, .controls { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 12px 14px; }
+  nav button, #modes button, #gap button { font: inherit; padding: 8px 10px; background: none; color: #8a8a90; border: 1px solid #29292d; border-radius: 6px; cursor: pointer; }
+  nav button[aria-pressed="true"], #modes button[aria-pressed="true"], #gap button[aria-pressed="true"] { color: #e6e6e6; border-color: #e6e6e6; }
+  svg { width: min(100%, 78vh); height: auto; margin: auto; display: block; cursor: grab; touch-action: none; }
+  .fill { fill: #0b0b0c; stroke: none; fill-rule: evenodd; }
+  .ln { fill: none; stroke: #e6e6e6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+  label { display: flex; align-items: center; gap: 8px; }
+  input[type=range] { width: 120px; accent-color: #e6e6e6; }
+  output { min-width: 3ch; color: #e6e6e6; }
+</style>
+</head>
+<body>
+<nav id="nav"></nav>
+<svg id="art" viewBox="0 0 600 600" aria-label="An object drawn with weight and depth"></svg>
+<div class="controls"><span id="modes" style="display:flex;gap:6px"></span><span id="gap" style="display:flex;gap:6px;align-items:center">gap</span><span id="controls" style="display:contents"></span></div>
+<script>
+/* ---------- the rule: how a line's weight and brightness are decided ---------- */
+const RULE = {
+  base: 1.0,       // overall stroke width multiplier
+  contrast: 0.7,   // 0 = every edge the same weight; 1 = silhouettes up to ~8x the weight of face-on edges
+  depth: 0.6,      // how much farther edges thin and fade (0 = none)
+  fade: 0.5,       // how much lower slices fade (0 = none)
+};
+const VIEW = { azimuth: 35, tilt: 0.5 };
+const N = 140, GAP = 0.03, BOX = 1.15;
+
+/* ---------- objects (signed distance functions, as in objects.html) ---------- */
+const len2 = (a, b) => Math.hypot(a, b);
+const smin = (a, b, k) => { const h = Math.max(k - Math.abs(a - b), 0) / k; return Math.min(a, b) - h * h * k * 0.25; };
+const subtract = (a, b) => Math.max(a, -b);
+const roundBox = (x, y, z, bx, by, bz, r) => { const qx = Math.abs(x) - bx, qy = Math.abs(y) - by, qz = Math.abs(z) - bz; return Math.hypot(Math.max(qx, 0), Math.max(qy, 0), Math.max(qz, 0)) + Math.min(Math.max(qx, qy, qz), 0) - r; };
+const rcyl = (ra, c, r, c0, c1, rr) => { const q1 = ra - (r - rr), q2 = Math.abs(c - (c0 + c1) / 2) - ((c1 - c0) / 2 - rr); return Math.hypot(Math.max(q1, 0), Math.max(q2, 0)) + Math.min(Math.max(q1, q2), 0) - rr; };
+
+const OBJECTS = {
+  binoculars: { z: [-0.42, 0.5], s: 195, sdf: (x, y, z) => {
+    const barrel = (s) => {
+      const cx = s * 0.36, R = (rad, y0, y1, rr) => rcyl(len2(x - cx, z), y, rad, y0, y1, rr);
+      let d = smin(R(0.3, -0.4, 0.4, 0.06), R(0.35, 0.3, 0.78, 0.05), 0.05);
+      d = smin(d, R(0.2, -0.72, -0.3, 0.04), 0.05);
+      return subtract(subtract(d, R(0.29, 0.7, 0.95, 0)), R(0.12, -0.9, -0.64, 0));
+    };
+    return smin(smin(Math.min(barrel(-1), barrel(1)), rcyl(len2(x, z - 0.08), y, 0.1, -0.3, 0.3, 0.05), 0.06), rcyl(len2(y, z - 0.3), x, 0.12, -0.2, 0.2, 0.03), 0.04);
+  } },
+  rocket: { z: [-0.86, 0.98], s: 165, sdf: (x, y, z) => {
+    const rho = len2(x, y), t = (z - 0.3) / 0.67;
+    const r = z > 0.3 ? 0.28 * Math.pow(Math.max(0, 1 - t), 0.65) : z > -0.6 ? 0.28 : 0.17 + (-0.6 - z) * 0.4;
+    let d = subtract(Math.max(rho - r, z - 0.97, -0.85 - z), Math.max(rho - 0.12, z + 0.72));
+    const f = 0.96, u0 = x * Math.cos(f) + y * Math.sin(f), v0 = -x * Math.sin(f) + y * Math.cos(f);
+    d = subtract(subtract(d, rcyl(len2(v0, z - 0.1), u0, 0.12, 0.2, 0.5, 0)), rcyl(len2(v0, z + 0.2), u0, 0.07, 0.2, 0.5, 0));
+    for (let k = 0; k < 3; k++) {
+      const a = f + Math.PI / 3 + (k * 2 * Math.PI) / 3, u = x * Math.cos(a) + y * Math.sin(a), v = -x * Math.sin(a) + y * Math.cos(a);
+      d = smin(d, Math.max(Math.abs(v) - 0.03, 0.15 - u, -0.7 - z, z + 0.1, (u - (0.62 - 0.55 * (z + 0.7))) * 0.8), 0.04);
+    }
+    return d;
+  } },
+  camera: { z: [-0.4, 0.56], s: 195, sdf: (x, y, z) => {
+    let d = smin(roundBox(x, y, z, 0.74, 0.18, 0.3, 0.06), roundBox(x, y + 0.02, z - 0.38, 0.18, 0.12, 0.1, 0.05), 0.03);
+    d = smin(d, roundBox(x - 0.62, y - 0.2, z, 0.1, 0.06, 0.28, 0.04), 0.04);
+    const lr = len2(x - 0.12, z);
+    d = smin(d, rcyl(lr, y, 0.31, 0.1, 0.26, 0.04), 0.03);
+    d = Math.min(d, rcyl(lr, y, 0.26, 0.1, 0.42, 0.05));
+    d = subtract(d, rcyl(lr, y, 0.2, 0.34, 0.6, 0));
+    d = Math.min(d, rcyl(lr, y, 0.12, 0.3, 0.4, 0.03));
+    d = subtract(d, roundBox(x + 0.55, y - 0.24, z - 0.12, 0.08, 0.03, 0.05, 0.01));
+    return Math.min(d, rcyl(len2(x - 0.55, y), z, 0.07, 0.26, 0.36, 0.02), rcyl(len2(x + 0.5, y), z, 0.12, 0.26, 0.36, 0.03));
+  } },
+  vase: { z: [-0.92, 0.92], s: 175, sdf: (x, y, z) => {
+    const t = (z + 0.9) / 1.8, r = 0.26 + 0.38 * Math.exp(-(((t - 0.33) / 0.24) ** 2)) + 0.14 * Math.exp(-(((t - 1) / 0.1) ** 2)), rho = len2(x, y);
+    return subtract(Math.max(rho - r, Math.abs(z) - 0.9), Math.max(rho - (r - 0.07), -0.8 - z));
+  } },
+  mug: { z: [-0.5, 0.5], s: 215, sdf: (x, y, z) => {
+    const rho = len2(x, y);
+    return Math.min(subtract(Math.max(rho - 0.55, Math.abs(z) - 0.45), Math.max(rho - 0.47, -0.33 - z)), len2(len2(x - 0.6, z) - 0.27, y) - 0.075);
+  } },
+};
+
+/* ---------- slicing (marching squares, as before) ---------- */
+function contour(f, N, L) {
+  const W = N + 1, at = (i, j) => f[j * W + i], adj = new Map(), pos = new Map();
+  const point = (key) => {
+    let p = pos.get(key); if (p) return p;
+    const [k, i, j] = key.split(",").map((s, n) => n ? +s : s), [i2, j2] = k === "h" ? [i + 1, j] : [i, j + 1];
+    const v0 = at(i, j), v1 = at(i2, j2), t = (L - v0) / (v1 - v0);
+    p = [i + (i2 - i) * t, j + (j2 - j) * t]; pos.set(key, p); return p;
+  };
+  const link = (a, b) => { (adj.get(a) || adj.set(a, []).get(a)).push(b); (adj.get(b) || adj.set(b, []).get(b)).push(a); };
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const a = at(i, j) >= L, b = at(i + 1, j) >= L, c = at(i + 1, j + 1) >= L, d = at(i, j + 1) >= L;
+    const top = `h,${i},${j}`, right = `v,${i + 1},${j}`, bottom = `h,${i},${j + 1}`, left = `v,${i},${j}`, cross = [];
+    if (a !== b) cross.push(top); if (b !== c) cross.push(right); if (d !== c) cross.push(bottom); if (a !== d) cross.push(left);
+    if (cross.length === 2) link(cross[0], cross[1]);
+    else if (cross.length === 4) {
+      const mid = (at(i, j) + at(i + 1, j) + at(i + 1, j + 1) + at(i, j + 1)) / 4 >= L;
+      if (mid === a) { link(top, right); link(left, bottom); } else { link(top, left); link(right, bottom); }
+    }
+  }
+  const loops = [], seen = new Set();
+  for (const start of adj.keys()) {
+    if (seen.has(start)) continue;
+    const loop = []; let prev = null, cur = start;
+    while (cur && !seen.has(cur)) { seen.add(cur); loop.push(point(cur)); const next = adj.get(cur).find((n) => n !== prev && !seen.has(n)); prev = cur; cur = next; }
+    if (loop.length > 3) loops.push(loop);
+  }
+  return loops;
+}
+function slice(obj) {
+  const [z0, z1] = obj.z, n = Math.max(2, Math.round((z1 - z0) / GAP)), f = new Float32Array((N + 1) * (N + 1)), w = (i) => -BOX + (2 * BOX * i) / N, out = [];
+  for (let k = 0; k < n; k++) {
+    const z = z0 + ((k + 0.5) / n) * (z1 - z0);
+    for (let j = 0; j <= N; j++) for (let i = 0; i <= N; i++) f[j * (N + 1) + i] = -obj.sdf(w(i), w(j), z);
+    const loops = contour(f, N, 0).map((l) => l.map(([i, j]) => [w(i), w(j)]));
+    if (loops.length) out.push({ z, t: (k + 0.5) / n, loops });
+  }
+  return out;
+}
+
+/* ---------- motion rule: the cursor pushes the lines out of its way ---------- */
+const WARP = { mode: "split", radius: 60, amount: 0.7 };            // radius in viewBox units; amount 0..1
+const FOLLOW = { x: 300, y: 300, vx: 0, vy: 0, s: 0, vs: 0, tx: 300, ty: 300, ts: 0 };   // the cursor as the drawing sees it: sprung, so it lags and settles
+function warp([x, y], cy) {
+  const k = FOLLOW.s;
+  if (k < 0.002) return [x, y];
+  if (WARP.mode === "split") {
+    /* the layers part along y: those above the cursor lift, those below drop. Each slice moves as a unit (cy is its own height on screen)
+       across its whole width; how far depends only on how near the cursor's height it is */
+    const H = WARP.radius * 1.6, dy = cy - FOLLOW.y, uy = Math.abs(dy) / H;
+    if (uy >= 1) return [x, y];
+    const G = WARP.amount * Math.min(60, 0.45 * H);                   // never so far that neighbouring slices would cross
+    return [x, y + Math.tanh(dy / 5) * k * G * (1 - uy) * (1 - uy)];
+  }
+  const dx = x - FOLLOW.x, dy = y - FOLLOW.y, r2_ = dx * dx + dy * dy, u = r2_ / (WARP.radius * WARP.radius);
+  if (u >= 1) return [x, y];                                          // outside the radius nothing moves, at all
+  const g = (1 - u) * (1 - u), a = k * WARP.amount * g;
+  if (WARP.mode === "push") { const m = Math.sqrt(r2_ + 36); return [x + (dx / m) * a * 36, y + (dy / m) * a * 36]; }     // away from the cursor
+  if (WARP.mode === "lift") return [x, y - a * 60];                                                                    // rises over it
+  const t = a * 1.3, c = Math.cos(t), sn = Math.sin(t);                                                               // swirl: turns around it
+  return [FOLLOW.x + dx * c - dy * sn, FOLLOW.y + dx * sn + dy * c];
+}
+
+/* ---------- the painter, with the weight rule applied edge by edge ---------- */
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v)), r2 = (n) => Math.round(n * 100) / 100;
+const WBINS = 8, OBINS = 4;
+function draw(svg, obj, sheets) {
+  const az = (VIEW.azimuth * Math.PI) / 180, s = Math.sin(az), c = Math.cos(az), zf = Math.sqrt(1 - VIEW.tilt ** 2), zm = (obj.z[0] + obj.z[1]) / 2, S = obj.s;
+  const P = (x, y, z) => [300 + S * (x * c - y * s), 300 + S * ((x * s + y * c) * VIEW.tilt - (z - zm) * zf)];
+  const pts = (l, z, cy) => l.map(([x, y]) => warp(P(x, y, z), cy).map(r2).join(" "));
+  const heightOnScreen = (sh) => { let t = 0, n = 0; for (const l of sh.loops) for (let i = 0; i < l.length; i += 6) { t += P(l[i][0], l[i][1], sh.z)[1]; n++; } return t / n; };
+  let out = "";
+  for (const sh of sheets) {
+    const cy = WARP.mode === "split" ? heightOnScreen(sh) : 0;
+    out += `<path class="fill" d="${sh.loops.map((l) => "M" + pts(l, sh.z, cy).join("L") + "Z").join("")}"/>`;
+    const buckets = new Map();                                     // (weight bin, opacity bin) -> path pieces
+    const fadeO = 1 - RULE.fade * (1 - sh.t);
+    for (const l of sh.loops) {
+      const n = l.length, key = l.map((p, i) => {
+        const q = l[(i + 1) % n], dx = q[0] - p[0], dy = q[1] - p[1], m = Math.hypot(dx, dy) || 1;
+        const facing = Math.abs((-dy * s + dx * c) / m);           // 0 on a silhouette, 1 facing you
+        const near = clamp(0.5 + ((p[0] + q[0]) * s + (p[1] + q[1]) * c) / 4.8, 0, 1);   // 0 far, 1 near
+        const sil = 1 - facing, w = RULE.base * (0.3 + 2.3 * Math.pow(sil, 1.5) * RULE.contrast + 0.9 * (1 - RULE.contrast) * 0.5) * (1 - RULE.depth * 0.6 * (1 - near));
+        const o = clamp(fadeO * (1 - RULE.depth * 0.7 * (1 - near)), 0.1, 1);
+        return clamp(Math.round(((w - 0.2) / 2.6) * (WBINS - 1)), 0, WBINS - 1) * OBINS + clamp(Math.round(o * (OBINS - 1)), 0, OBINS - 1);
+      });
+      let k = key.findIndex((v, i) => v !== key[(i + n - 1) % n]);
+      const emit = (id, run, closed) => { const a = buckets.get(id) || []; a.push("M" + run.join("L") + (closed ? "Z" : "")); buckets.set(id, a); };
+      const P2 = pts(l, sh.z, cy);
+      if (k < 0) { emit(key[0], P2, true); continue; }
+      for (let i = 0; i < n;) {
+        const v = key[(k + i) % n], run = [P2[(k + i) % n]];
+        while (i < n && key[(k + i) % n] === v) { i++; run.push(P2[(k + i) % n]); }
+        emit(v, run, false);
+      }
+    }
+    for (const [id, d] of buckets) {
+      const w = 0.2 + (Math.floor(id / OBINS) / (WBINS - 1)) * 2.6, o = (id % OBINS) / (OBINS - 1);
+      out += `<path class="ln" stroke-width="${r2(w)}" stroke-opacity="${r2(0.1 + 0.9 * o)}" d="${d.join("")}"/>`;
+    }
+  }
+  svg.innerHTML = out;
+}
+
+/* ---------- page ---------- */
+const svg = document.getElementById("art"), nav = document.getElementById("nav"), controls = document.getElementById("controls"), cache = {};
+let current = "binoculars";
+const redraw = () => { cache[current] ||= slice(OBJECTS[current]); draw(svg, OBJECTS[current], cache[current]); };
+const show = (name) => { current = name; [...nav.children].forEach((b) => b.setAttribute("aria-pressed", String(b.textContent === name))); redraw(); };
+for (const name of Object.keys(OBJECTS)) { const b = document.createElement("button"); b.textContent = name; b.onclick = () => show(name); nav.appendChild(b); }
+for (const [key, label, max] of [["base", "weight", 2], ["contrast", "contrast", 1], ["depth", "depth cue", 1], ["fade", "height fade", 1]]) {
+  const l = document.createElement("label"), i = document.createElement("input"), o = document.createElement("output");
+  Object.assign(i, { type: "range", min: 0, max, step: 0.05, value: RULE[key] });
+  o.textContent = RULE[key].toFixed(2);
+  i.oninput = () => { RULE[key] = +i.value; o.textContent = (+i.value).toFixed(2); redraw(); };
+  l.append(label, i, o); controls.appendChild(l);
+}
+for (const mode of ["split", "push", "lift", "swirl"]) {
+  const b = document.createElement("button"); b.textContent = mode; b.dataset.mode = mode; b.onclick = () => { WARP.mode = mode; syncModes(); wake(); };
+  document.getElementById("modes").appendChild(b);
+}
+const syncModes = () => document.querySelectorAll("#modes button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === WARP.mode)));
+syncModes();
+for (const [key, label, max] of [["radius", "reach", 140], ["amount", "strength", 1]]) {
+  const l = document.createElement("label"), i = document.createElement("input"), o = document.createElement("output");
+  Object.assign(i, { type: "range", min: key === "radius" ? 20 : 0, max, step: key === "radius" ? 5 : 0.05, value: WARP[key] });
+  o.textContent = (+WARP[key]).toFixed(key === "radius" ? 0 : 2);
+  i.oninput = () => { WARP[key] = +i.value; o.textContent = (+i.value).toFixed(key === "radius" ? 0 : 2); wake(); };
+  i.dataset.key = key; l.append(label, i, o); controls.appendChild(l);
+}
+
+/* the gap toggle: three sizes of the same strength the slider sets */
+const GAPS = { small: 0.35, medium: 0.7, large: 1 };
+const syncGap = () => {
+  document.querySelectorAll("#gap button").forEach((b) => b.setAttribute("aria-pressed", String(Math.abs(GAPS[b.textContent] - WARP.amount) < 0.01)));
+  const sl = document.querySelector('input[data-key="amount"]'); sl.value = WARP.amount; sl.nextSibling.textContent = (+WARP.amount).toFixed(2);
+};
+for (const name of Object.keys(GAPS)) {
+  const b = document.createElement("button"); b.textContent = name;
+  b.onclick = () => { WARP.amount = GAPS[name]; syncGap(); wake(); };
+  document.getElementById("gap").appendChild(b);
+}
+document.querySelector('input[data-key="amount"]').addEventListener("input", syncGap);
+syncGap();
+
+/* one loop, asleep when nothing moves: springs for where the cursor is and how strongly it acts */
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+let raf = 0, last = 0;
+function frame(now) {
+  const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  const F = FOLLOW, K = 150, C = 15;
+  if (reduce) { F.x = F.tx; F.y = F.ty; F.s = F.ts; F.vx = F.vy = F.vs = 0; }
+  else for (let n = 0; n < 4; n++) {
+    const h = dt / 4;
+    F.vx += (-K * (F.x - F.tx) - C * F.vx) * h; F.x += F.vx * h;
+    F.vy += (-K * (F.y - F.ty) - C * F.vy) * h; F.y += F.vy * h;
+    F.vs += (-K * (F.s - F.ts) - C * F.vs) * h; F.s += F.vs * h;
+  }
+  redraw();
+  const moving = Math.abs(F.x - F.tx) + Math.abs(F.y - F.ty) > 0.1 || Math.abs(F.s - F.ts) > 0.002 || Math.abs(F.vx) + Math.abs(F.vy) + Math.abs(F.vs) > 0.05;
+  raf = moving ? requestAnimationFrame(frame) : 0;
+  if (!moving) { F.x = F.tx; F.y = F.ty; F.s = F.ts; redraw(); }
+}
+function wake() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+const toBox = (e) => { const m = svg.getScreenCTM().inverse(), p = new DOMPoint(e.clientX, e.clientY).matrixTransform(m); return [p.x, p.y]; };
+svg.addEventListener("pointermove", (e) => {
+  const [x, y] = toBox(e);
+  if (FOLLOW.ts === 0) { FOLLOW.x = x; FOLLOW.y = y; }                  // entering: appear under the cursor, do not fly in
+  FOLLOW.tx = x; FOLLOW.ty = y; FOLLOW.ts = 1; wake();
+});
+svg.addEventListener("pointerleave", () => { FOLLOW.ts = 0; wake(); });
+
+let drag = null;
+svg.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, az: VIEW.azimuth, tilt: VIEW.tilt }; });
+svg.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  if (!(e.buttons & 1)) { drag = null; return; }
+  VIEW.azimuth = drag.az - (e.clientX - drag.x) * 0.4;
+  VIEW.tilt = clamp(drag.tilt + (e.clientY - drag.y) * 0.003, 0.15, 0.95);
+  redraw();
+});
+for (const t of ["pointerup", "pointercancel", "pointerleave"]) svg.addEventListener(t, () => { drag = null; });
+show(current);
+</script>
+</body>
+</html>

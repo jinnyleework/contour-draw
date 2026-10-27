@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="1.1">
+  <!-- technicals: the drop with its axis drawn through it, long dash and short, as a technical drawing marks one -->
+  <ellipse cx="16" cy="28.40" rx="4.87" ry="0.80"/>
+  <ellipse cx="16" cy="25.82" rx="6.89" ry="1.10"/>
+  <ellipse cx="16" cy="23.24" rx="7.55" ry="1.21"/>
+  <ellipse cx="16" cy="20.67" rx="7.50" ry="1.20"/>
+  <ellipse cx="16" cy="18.09" rx="6.98" ry="1.12"/>
+  <ellipse cx="16" cy="15.51" rx="6.14" ry="0.98"/>
+  <ellipse cx="16" cy="12.93" rx="5.05" ry="0.81"/>
+  <ellipse cx="16" cy="10.36" rx="3.83" ry="0.80"/>
+  <ellipse cx="16" cy="7.78" rx="2.52" ry="0.80"/>
+  <ellipse cx="16" cy="5.20" rx="1.23" ry="0.80"/>
+  <path d="M16 1.5V31" stroke-width="0.6" stroke-dasharray="3 1.2 0.8 1.2"/>
+</svg>
