@@ -84,7 +84,7 @@
   const placed = new Set(SHELVES.flatMap((s) => s.figures));
   SHELVES.at(-1).figures.push(...Object.keys(SCENES).filter((n) => !placed.has(n)));
   // small tiles draw lighter lines than the full page the figures were tuned on
-  const TILE_WEIGHT = 0.6;
+  const TILE_WEIGHT = 0.8;
   const $ = (id) => document.getElementById(id);
   const shelves = $("shelves"), toc = $("toc"), handles = [];
   let open = null;   // { name, tile, handle }

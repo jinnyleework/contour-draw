@@ -27,7 +27,7 @@
 </header>
 <main class="doc">
   <div class="lib-intro">
-    <h1><span><img src="assets/logo-slices.svg" alt=""></span>technicals</h1>
+    <h1><span><img src="assets/icon-technicals.svg" alt=""></span>technicals</h1>
     <p>the contour engine: how an object becomes slices, how the slices are painted, and how the cursor drives them. Every value here is the engine's own</p>
   </div>
   <div class="doc-main">
@@ -48,10 +48,10 @@
       <section class="sec" id="rule" data-title="rule A">
         <h2><span class="no">02</span><span>rule A</span><span class="tag">src/painter.js · RULE</span><small>weight and depth: one ink, its weight and opacity doing all the work</small></h2>
         <div class="cells">
-          <div><em>0.85</em><b>base</b><span>The weight every edge starts from (the library's tiles draw at 0.6 of it).</span></div>
-          <div><em>1.0</em><b>contrast</b><span>Silhouettes heavy, edges facing you light: an edge seen side-on gets up to 2.3 times more.</span></div>
+          <div><em>0.9</em><b>base</b><span>The weight every edge starts from (the library's tiles draw at 0.8 of it).</span></div>
+          <div><em>0.4</em><b>contrast</b><span>Silhouettes heavy, edges facing you light: an edge seen side-on gets up to 2.3 times more.</span></div>
           <div><em>0.8</em><b>depth</b><span>Farther edges are thinner and fainter.</span></div>
-          <div><em>0.25</em><b>fade</b><span>Lower sheets are a little fainter than higher ones.</span></div>
+          <div><em>0</em><b>fade</b><span>Lower sheets can be drawn fainter than higher ones (off by default).</span></div>
         </div>
         <p>Weights run from 0.2 to 3.4 screen px and never scale with the drawing; they and the opacities are bucketed (8 weights, 4 opacities), so a sheet is a handful of paths, not one per edge.</p>
       </section>
@@ -152,7 +152,7 @@ node site/build.mjs           # site/assets/contour-figures.js: the engine and f
         <div class="cells two">
           <div><b>Inter</b><span>Everything: titles, body, captions.</span></div>
           <div><b>Geist Mono</b><span>Read-outs, indices, numbers, code.</span></div>
-          <div><b>slices</b><span>The logo, three slices of one object: <a href="assets/logo-slices.svg" download>download svg</a>.</span></div>
+          <div><b>slices</b><span>The logo, ten slices of one raindrop: <a href="assets/logo-slices.svg" download>download svg</a>.</span></div>
         </div>
       </section>
 

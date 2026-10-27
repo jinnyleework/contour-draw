@@ -43,7 +43,7 @@ html { cursor: var(--cursor); min-height: 100%; }
 a[href], button, summary, label[for], select, [role="button"] { cursor: var(--cursor-pointer); }
 
 /* header: the logo top-left, the three links centred */
-.top { position: relative; height: 115.2px; }
+.top { position: relative; z-index: 6; height: 115.2px; }
 .top .mark { position: absolute; left: 42px; top: 30px; width: 38.4px; height: 38.4px; display: block; }
 .top .mark img { width: 100%; height: 100%; display: block; transition: transform 900ms var(--ease-out), filter 420ms var(--ease-out); }
 /* lights off: the logo turns once and goes white; every other logo just goes white */
@@ -65,7 +65,7 @@ img[src$="logo-slices.svg"], img[src*="assets/icon-"] { transition: filter 420ms
 .top nav a[aria-current="page"]::after { transform: none; }
 /* the light pull, top right (assets/theme.js): a ball chain coming down from above the page's top edge to a pendant
    cut as contour slices. Only the pendant takes the pointer: the hand opens over it and closes on it */
-.top .pull { position: absolute; right: 21.6px; top: -8.4px; width: 76.8px; height: 180px; z-index: 5; display: block; padding: 0; border: 0; background: none; pointer-events: none; touch-action: none; }
+.top .pull { position: fixed; right: 21.6px; top: -8.4px; width: 76.8px; height: 180px; z-index: 5; display: block; padding: 0; border: 0; background: none; pointer-events: none; touch-action: none; }
 .top .pull svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .top .pull .chain circle { fill: var(--ct-ground); stroke: var(--ct-ink); stroke-width: 0.9; transition: fill 320ms var(--ease-out); }
 .top .pull .hit { fill: transparent; pointer-events: auto; cursor: var(--cursor-grab); }
@@ -75,8 +75,13 @@ img[src$="logo-slices.svg"], img[src*="assets/icon-"] { transition: filter 420ms
 .top .pull:focus-visible .pendant { outline: 2.4px solid var(--blue-500); outline-offset: 3.6px; }
 
 /* home */
-.home { overflow-x: clip; min-height: calc(100vh - 115.2px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38.4px; padding-bottom: 115.2px; }
-.wordmark { margin: 0; display: flex; align-items: center; gap: 0.27em; font-size: 19.2px; font-weight: 500; line-height: normal; }
+.home { position: relative; z-index: 1; pointer-events: none; overflow-x: clip; min-height: calc(100vh - 115.2px); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 38.4px; padding-bottom: 115.2px; }
+/* the words sit over the water, which is drawn across the whole window behind them (.field) */
+.home .wordmark, .home .install { pointer-events: auto; }
+/* the wordmark sits in the middle of the window, both ways, and the prompt just under it; `translate` leaves the intro's own transforms alone */
+.home .wordmark { position: fixed; top: 50%; left: 50%; translate: -50% -50%; white-space: nowrap; }
+.home .install { position: fixed; top: calc(50% + 62px); left: 50%; translate: -50% 0; }
+.wordmark { margin: 0; display: flex; align-items: center; gap: 0.27em; font-size: 14px; font-weight: 500; line-height: normal; }
 .wordmark .slot { position: relative; display: block; width: 31.2px; height: 31.2px; margin: 0 2.4px; }
 /* the selection frame the opening's cursor picks the logo with */
 .wordmark .pick { position: absolute; left: 50%; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border: 1px solid var(--blue-500); opacity: 0; pointer-events: none; }
@@ -89,17 +94,25 @@ img[src$="logo-slices.svg"], img[src*="assets/icon-"] { transition: filter 420ms
 .intro .wordmark .w { opacity: 0; }
 .intro .wordmark .slot { width: 0; margin: 0 0 0 -0.27em; }
 .intro .wordmark .slot img { opacity: 0; transform: rotate(43.88deg); }
-.intro .stage, .intro .install { opacity: 0; }
-.intro .stage { pointer-events: none; }
+.intro .install { opacity: 0; }
 .cursor { position: fixed; left: 0; top: 0; width: 16.8px; height: 24px; pointer-events: none; z-index: 20; opacity: 0; filter: drop-shadow(0 2.4px 4.8px rgba(31, 31, 31, 0.18)); }
 .cursor img { display: block; width: 100%; height: 100%; }
 .tap { position: fixed; left: 0; top: 0; width: 26.4px; height: 26.4px; margin: -13.2px 0 0 -13.2px; border-radius: 50%; border: 1px solid var(--text-disabled); pointer-events: none; z-index: 19; opacity: 0; }
 .install .caret { display: inline-block; width: 1px; height: 14.4px; margin-left: 1px; vertical-align: -2.4px; background: var(--text-subtle); animation: caret 900ms steps(1) infinite; }
 @keyframes caret { 50% { opacity: 0; } }
 .stage { width: 528px; max-width: calc(100vw - 57.6px); aspect-ratio: 1; margin: -48px 0; }
-.stage:hover { cursor: var(--cursor-pointer); }
-.stage-hint { margin: 0; font: 13.2px/1 var(--mono); color: var(--text-disabled); min-height: 13.2px; }
-.intro .stage-hint { opacity: 0; }
+/* the home figure: fixed behind the page and filling the window, so its ripples run out to every edge; the library link is the whole of it */
+.field { position: fixed; inset: 0; z-index: 0; }
+/* the water is an animation on load only: the pointer does nothing to it */
+.field .ct { pointer-events: none; }
+/* the windmill: small, in the middle of the window; it fades in once the wordmark and the prompt have parted for it */
+.mill { position: fixed; top: 50%; left: 50%; width: min(520px, calc(100vw - 32px)); height: 300px; translate: -50% -50%; z-index: 1; opacity: 0; pointer-events: none; }
+.mill:hover { cursor: var(--cursor-pointer); }
+.mill .ct { overflow: visible; pointer-events: none; }
+/* the same parting, for a load with no intro (reduced motion): the drawn-apart state, with no animation */
+.apart .wordmark { transform: translateY(-214px); }
+.apart .install { transform: translateY(136px); }
+.apart .mill { opacity: 1; }
 .install { display: inline-flex; align-items: center; gap: 12px; padding: 4.8px 9.6px; border: 0; border-radius: var(--radius-md); background: var(--surface-base); font: 500 14.4px/normal Inter, ui-sans-serif, sans-serif; color: var(--text-subtle); cursor: var(--cursor-pointer); transition: background 150ms var(--ease-out); }
 .install:hover { background: var(--hover); }
 .install .dollar { color: var(--text-disabled); }
@@ -127,8 +140,9 @@ img[src$="logo-slices.svg"], img[src*="assets/icon-"] { transition: filter 420ms
 .lib-intro h1 { margin: 0; display: flex; align-items: center; font-size: 19.2px; font-weight: 500; line-height: normal; }
 .lib-intro h1 span { width: 44.12px; height: 44.12px; display: grid; place-items: center; }
 .lib-intro h1 img { width: 31.2px; height: 31.2px; transform: rotate(43.88deg); }
-/* the page marks (assets/icon-*.svg) sit upright; only the logo tilts */
-.lib-intro h1 img[src*="assets/icon-"] { width: 26.4px; height: 26.4px; transform: none; }
+/* the page marks (assets/icon-*.svg) are drawn in the logo's slices, so they are shown at its size, and so at its
+   weight; they sit upright, and only the logo tilts */
+.lib-intro h1 img[src*="assets/icon-"] { transform: none; }
 .page h1.marked { display: flex; align-items: center; line-height: normal; }
 .page h1.marked span { width: 44.12px; height: 44.12px; display: grid; place-items: center; margin-left: -8.4px; }
 .page h1.marked img { width: 26.4px; height: 26.4px; }
@@ -305,10 +319,10 @@ body.has-panel .panel { transform: none; }
 .doc .lib-intro { width: 614.4px; margin-bottom: 38.4px; }
 .doc-main { position: relative; --rule: #e4e4e4; --rule-strong: #cfcfcf; }
 :root[data-theme="dark"] .doc-main { --rule: #262626; --rule-strong: #383838; }
-.doc-main::before { content: ""; position: absolute; top: -22.8px; bottom: -61.2px; left: 50%; width: 768px; margin-left: -384px; pointer-events: none;
+.doc-main::before { content: ""; position: absolute; top: -22.8px; bottom: -61.2px; left: 50%; width: 614.4px; margin-left: -307.2px; pointer-events: none;
   --dash: repeating-linear-gradient(to bottom, var(--rule) 0 4.8px, transparent 4.8px 9.6px);
-  background-image: var(--dash), var(--dash); background-size: 1px 100%; background-repeat: no-repeat; background-position: 0 0, 766.8px 0; }
-.doc-body { position: relative; width: 768px; max-width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 115.2px; }
+  background-image: var(--dash), var(--dash); background-size: 1px 100%; background-repeat: no-repeat; background-position: 0 0, 613.2px 0; }
+.doc-body { position: relative; width: 614.4px; max-width: 100%; margin: 0 auto; display: flex; flex-direction: column; gap: 115.2px; }
 .doc .lib-toc { left: max(22.8px, calc(50% - 597.6px)); width: 168px; }
 .sec { position: relative; display: flex; flex-direction: column; gap: 31.2px; scroll-margin-top: 38.4px; }
 .sec + .sec::before, .sec + .sec::after { content: ""; position: absolute; left: 0; right: 0; top: -69.6px; height: 22.8px; pointer-events: none; }
@@ -384,8 +398,6 @@ body.has-panel .panel { transform: none; }
 .cells.head > * { color: var(--text-disabled); font: 12px/1.6 var(--mono); }
 :root[data-theme="dark"] .sec + .sec::before {
   background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10'%3E%3Cpath d='M-1 1l2-2M0 10L10 0M9 11l2-2' stroke='%23262626' stroke-width='1'/%3E%3C/svg%3E") 0 0 / 10px 10px, var(--page); }
-/* get started's mark is drawn in the logo's own grammar, so it is shown at the logo's size, and so at its weight */
-.lib-intro h1 img[src$="icon-start.svg"] { width: 31.2px; height: 31.2px; }
 
 /* ---- the contour figures (assets/figure.js): each is an svg of slices, painted bottom up. Every slice is filled with
    the ground, so a higher one covers a lower one, then its edges are drawn in one ink at rule A's weights. The ground
@@ -399,7 +411,7 @@ body.has-panel .panel { transform: none; }
 .ct .ln { fill: none; stroke: var(--ct-ink); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .panel-fig { aspect-ratio: 1; max-height: 46vh; margin-left: auto; margin-right: auto; transition: background 320ms var(--ease-out); }
 .panel-hint { margin: 7.2px 16.8px 0; font: 13.2px/1.4 var(--mono); color: var(--text-disabled); }
-.cells.five { grid-template-columns: 156px 1fr 120px 120px 120px; }
+.cells.five { grid-template-columns: 124.8px 1fr 96px 96px 96px; }
 .cells.five span { font: 13.2px/1.5 var(--mono); }
 .cells.five > div > :first-child + span { font: 14.4px/1.45 Inter, ui-sans-serif, sans-serif; }
 @media (max-width: 864px) { .cells.five { grid-template-columns: 1fr; } .cells.five > div > * { border-right: 0 !important; } .cells.five > div > :not(:first-child) { padding-top: 0; } }
