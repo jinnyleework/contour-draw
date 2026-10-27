@@ -63,8 +63,8 @@ img[src$="logo-slices.svg"], img[src*="assets/icon-"] { transition: filter 420ms
   transform: scaleX(0); transform-origin: right; transition: transform 420ms var(--ease-out); }
 .top nav a:hover::after { transform: scaleX(1); transform-origin: left; }
 .top nav a[aria-current="page"]::after { transform: none; }
-/* the light pull, top right (assets/theme.js): a ball chain from a ceiling rose just above the page's top edge to a
-   pendant, both cut as contour slices. Only the pendant takes the pointer: the hand opens over it and closes on it */
+/* the light pull, top right (assets/theme.js): a ball chain coming down from above the page's top edge to a pendant
+   cut as contour slices. Only the pendant takes the pointer: the hand opens over it and closes on it */
 .top .pull { position: absolute; right: 21.6px; top: -8.4px; width: 76.8px; height: 180px; z-index: 5; display: block; padding: 0; border: 0; background: none; pointer-events: none; touch-action: none; }
 .top .pull svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .top .pull .chain circle { fill: var(--ct-ground); stroke: var(--ct-ink); stroke-width: 0.9; transition: fill 320ms var(--ease-out); }

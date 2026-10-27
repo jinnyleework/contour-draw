@@ -1,7 +1,7 @@
 /*
- * The site's light pull: the theme switch, hung top right in every page's header. A ball chain drops from a ceiling
- * rose to a pendant, both cut as contour slices (figures/pull.js, painted by site/build.mjs into assets/pull.js, which
- * loads before this).
+ * The site's light pull: the theme switch, hung top right in every page's header. A ball chain comes down from above
+ * the page's top edge to a pendant cut as contour slices (figures/pull.js, painted by site/build.mjs into
+ * assets/pull.js, which loads before this).
  *
  * Point at it and it gives a little: the chain goes taut and the pendant drops. Press and drag it down and it follows
  * the hand, giving less the further it goes, and swings on its chain as the hand moves sideways; let go and it springs
@@ -19,21 +19,21 @@
   const header = document.querySelector("header.top");
   if (!header || !window.contourPull) return;
 
-  // the pull's measures, in px: where the chain hangs from, how long it is, and how the pendant is drawn
-  const PIVOT = [32, 14], CHAIN = 74, BEADS = 15, SCALE = 0.115;
+  // the pull's measures, in px: where the chain hangs from (well above the page, so it only comes in at the top edge),
+  // how long it is, and how the pendant is drawn
+  const PIVOT = [32, -40], CHAIN = 128, BEADS = 26, SCALE = 0.115;
   const GIVE = 6;                       // how far pointing at it draws the pendant down
   const DRAG = 34, REACH = 0.4;         // how far a drag can draw it further, and the share of that which counts as a pull
-  const SWAY = 14;                      // how far a sideways drag swings it, either way (degrees)
-  const { pendant, rose } = window.contourPull;
-  // where each piece meets the chain, on its 600 × 600 page: the cap's top, and the rose's underside
-  const CAP = [300, 95], HOOK = [300, 321];
+  const SWAY = 9;                       // how far a sideways drag swings it, either way (degrees, about a pivot far above)
+  const { pendant } = window.contourPull;
+  // where the pendant meets the chain, on its 600 × 600 page: the top of its cap
+  const CAP = [300, 95];
   const place = ([x, y], [ax, ay]) => `translate(${x - ax * SCALE} ${y - ay * SCALE}) scale(${SCALE})`;
 
   const pull = Object.assign(document.createElement("button"), { type: "button", className: "pull" });
   pull.setAttribute("aria-label", "Dark mode");
   pull.innerHTML = `<svg viewBox="0 0 64 150" aria-hidden="true">
     <g class="ct">
-      <g transform="${place(PIVOT, HOOK)}">${rose.markup}</g>
       <g class="grab">
         <g class="chain">${Array.from({ length: BEADS }, () => '<circle r="1.25"/>').join("")}</g>
         <g class="pendant"><g transform="${place([0, 0], CAP)}">${pendant.markup}</g></g>
@@ -51,7 +51,7 @@
 
   const draw = () => {
     const a = (swing.at * Math.PI) / 180, len = CHAIN + drop.at, sx = Math.sin(a), cy = Math.cos(a);
-    // the chain runs straight from the rose to the cap, its beads evenly spread along it, so a longer pull spreads them
+    // the chain runs straight from above the page to the cap, its beads evenly spread along it, so a longer pull spreads them
     beads.forEach((b, i) => {
       const t = (i + 0.5) / BEADS;
       b.setAttribute("cx", (PIVOT[0] + sx * len * t).toFixed(2));

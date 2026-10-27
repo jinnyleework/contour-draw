@@ -1,12 +1,12 @@
 import { planes } from "../../engine/src/slice.js";
 
 /*
- * The site's light pull, drawn on the contour engine: a ceiling rose, and a pendant turned from one profile (the end
- * knob, the cup, the ceramic grip tapering to its neck, and the cap), each cut into slices like every other figure.
- * site/build.mjs paints them once, at rest, into assets/pull.js; the chain between them and the motion are the page's
- * (assets/theme.js), since the pull is the site's own switch and not a figure in the library.
+ * The site's light pull, drawn on the contour engine: a pendant turned from one profile (the end knob, the cup, the
+ * ceramic grip tapering to its neck, and the cap), cut into slices like every other figure. site/build.mjs paints it
+ * once, at rest, into assets/pull.js; its chain and the motion are the page's (assets/theme.js), since the pull is the
+ * site's own switch and not a figure in the library.
  *
- * Both are drawn small, so they are cut wider apart than a figure (a slice every few pixels, not every one).
+ * It is drawn small, so it is cut wider apart than a figure (a slice every few pixels, not every one).
  */
 
 /** a turned solid: the radius at each height, from a profile of [radius, height] points running upward */
@@ -36,8 +36,3 @@ export const pullPendant = pullScene(
   [0, PULL_HEIGHT], 300, PULL_HEIGHT / 2,
 );
 
-/** the ceiling rose the chain hangs from: a shallow dome against the ceiling, wide at the top */
-export const pullRose = pullScene(
-  { id: "rose", order: 0, box: { x: [-0.5, 0.5], y: [-0.5, 0.5] }, cell: 0.008, planes: planes(0.004, 0.16, 0.05), sdf: pullLathe([[0.08, 0], [0.26, 0.05], [0.36, 0.11], [0.36, 0.16]]) },
-  [0, 0.16], 300, 0.08,
-);
