@@ -140,9 +140,9 @@ img[src$="logo-slices.svg"], img[src*="assets/icon-"] { transition: filter 420ms
 .lib-intro h1 { margin: 0; display: flex; align-items: center; font-size: 19.2px; font-weight: 500; line-height: normal; }
 .lib-intro h1 span { width: 44.12px; height: 44.12px; display: grid; place-items: center; }
 .lib-intro h1 img { width: 31.2px; height: 31.2px; transform: rotate(43.88deg); }
-/* the page marks (assets/icon-*.svg) are drawn in the logo's slices, so they are shown at its size, and so at its
-   weight; they sit upright, and only the logo tilts */
-.lib-intro h1 img[src*="assets/icon-"] { transform: none; }
+/* the page marks (assets/icon-*.svg) are drawn in the logo's slices, a little smaller than it beside the heading; they
+   sit upright, and only the logo tilts */
+.lib-intro h1 img[src*="assets/icon-"] { width: 24px; height: 24px; transform: none; }
 .page h1.marked { display: flex; align-items: center; line-height: normal; }
 .page h1.marked span { width: 44.12px; height: 44.12px; display: grid; place-items: center; margin-left: -8.4px; }
 .page h1.marked img { width: 26.4px; height: 26.4px; }

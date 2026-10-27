@@ -6,7 +6,7 @@
 <title>contour draw</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="site.css">
-<script>try { document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"; } catch {}</script>
+<script>{ let theme; try { theme = localStorage.getItem("theme"); } catch {} document.documentElement.dataset.theme = theme || "dark"; }</script>
 <script>if (!matchMedia("(prefers-reduced-motion: reduce)").matches) document.documentElement.classList.add("intro");</script>
 </head>
 <body>
@@ -44,9 +44,12 @@
   // the carousel turns slowly and steadily, round and round, for as long as it is on show (about nine seconds a turn)
   const ride = Contour.SCENES.carousel;
   Contour.SCENES["carousel home"] = { ...ride, T: 600, active: [0, 0], step: (t) => ({ base: {}, canopy: {}, ride: { prm: { ph: Math.round((t * 0.7) / 0.04) * 0.04 } } }) };
-  // and the ripples are not sped up or faded: they calm in the middle, and that stillness spreads outwards across the page
+  // and the ripples are not sped up or faded: they calm in the middle, and that stillness spreads outwards across the page.
+  // Its loop runs well past the opening's four seconds: a demo that reached its end would snap back to the rest pose, the
+  // drop hanging over the water again, for the frames before the opening takes the water away
   Contour.SCENES["ripple home"] = {
     ...tank,
+    T: 7,
     step(t, abs, k) {
       const s = tank.step(t, abs, k), amp = tank.step(1.5, abs, k).water.prm.a;
       if (t > 0.9) s.drop.hide = true;

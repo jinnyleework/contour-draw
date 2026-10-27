@@ -6,7 +6,7 @@
 <title>technicals · contour draw</title>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="site.css">
-<script>try { document.documentElement.dataset.theme = localStorage.getItem("theme") || "light"; } catch {}</script>
+<script>{ let theme; try { theme = localStorage.getItem("theme"); } catch {} document.documentElement.dataset.theme = theme || "dark"; }</script>
 <script>
   // the page starts empty and draws itself in (assets/reveal.js); if that never runs, show it as it is
   if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
