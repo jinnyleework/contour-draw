@@ -27,7 +27,7 @@
   </h1>
   <div class="stage" aria-hidden="true"></div>
   <button class="install" id="install" type="button" aria-label="Copy the first prompt">
-    <span class="dollar">&gt;</span><span class="cmd">/draw-contour a windmill whose sails turn as you move across it</span><span class="copied">copied</span>
+    <span class="dollar">&gt;</span><span class="cmd">/draw-contour a windmill whose sails turn</span><span class="copied">copied</span>
   </button>
 </main>
 <script src="assets/contour-figures.js"></script>
@@ -65,14 +65,14 @@
   // the figures in the middle, one at a time, each turning on a loop until it is clicked, with the prompt that would draw it.
   // The first is the windmill; a click takes the one on show apart layer by layer and builds the next up from the ground
   const FIGURES = [
-    ["windmill", "a windmill whose sails turn as you move across it"],
-    ["carousel home", "a carousel that spins up as you move across it"],
-    ["rocket", "a rocket that launches as you move up it"],
-    ["lightbulb", "a light bulb that switches on as you move up it"],
-    ["typewriter", "a typewriter that types as you move across it"],
-    ["jack in the box", "a jack in the box whose crank winds as you move across it"],
-    ["umbrella", "an umbrella that opens as you move up it"],
-    ["hourglass", "an hourglass whose sand runs as you move across it"],
+    ["windmill", "a windmill whose sails turn"],
+    ["carousel home", "a carousel that spins up"],
+    ["rocket", "a rocket that launches"],
+    ["lightbulb", "a light bulb that switches on"],
+    ["typewriter", "a typewriter that types"],
+    ["jack in the box", "a jack in the box whose crank winds"],
+    ["umbrella", "an umbrella that opens"],
+    ["hourglass", "an hourglass whose sand runs"],
     ["terrain", "a terrain that raises a peak under the cursor"],
   ];
   const BOX = { w: 520, h: 300 };
@@ -173,14 +173,15 @@
     const tag = (side, set) => set.parts.map((p, i) => ({ id: side + i, side, order: p.order, overlay: p.overlay, pose: p.pose, all: p.sheets, sheets: p.sheets }));
     const parts = [...tag("a", a), ...tag("b", b)];
     const ease = (x0, x1, t) => { const u = Math.min(1, Math.max(0, (t - x0) / (x1 - x0))); return u * u * (3 - 2 * u); };
+    const HALF = 0.9;                                              // seconds to take one figure down, and as long to build the next
     const morph = {
-      T: 3.7, ...b.cam, active: [3.6, 3.6], drive: () => 0, hint: "",
+      T: 2 * HALF + 0.1, ...b.cam, active: [2 * HALF, 2 * HALF], drive: () => 0, hint: "",
       parts,
       step(t) {
-        const down = t < 1.8, cam = down ? a.cam : b.cam, [z0, z1] = cam.zr, span = z1 - z0 + 0.1, st = {};
+        const down = t < HALF, cam = down ? a.cam : b.cam, [z0, z1] = cam.zr, span = z1 - z0 + 0.1, st = {};
         Object.assign(morph, cam);
         svg.setAttribute("viewBox", fit((down ? a : b).box).join(" "));
-        const h = down ? z1 + 0.05 - span * ease(0, 1.8, t) : z0 - 0.05 + span * ease(1.8, 3.6, t);
+        const h = down ? z1 + 0.05 - span * ease(0, HALF, t) : z0 - 0.05 + span * ease(HALF, 2 * HALF, t);
         for (const p of parts) {
           const dz = p.pose.off ? p.pose.off[2] : 0;
           p.sheets = (p.side === "a") === down ? p.all.filter((s) => s.z + dz <= h + 1e-6) : [];
