@@ -31,6 +31,7 @@
 </main>
 <script src="assets/contour-figures.js"></script>
 <script src="assets/figure.js"></script>
+<script src="assets/pull.js"></script>
 <script src="assets/theme.js"></script>
 <script>
   const $ = (id) => document.getElementById(id);
@@ -68,7 +69,7 @@
     await wait(words.length * 140 + 420 + 200);
 
     // 2. they part, and the logo comes in between them, tilted, then turns upright
-    const open = run(slot, [{ width: "0px", marginLeft: "-0.27em", marginRight: "0px" }, { width: "26px", marginLeft: "2px", marginRight: "2px" }], { duration: 520 });
+    const open = run(slot, [{ width: "0px", marginLeft: "-0.27em", marginRight: "0px" }, { width: "31.2px", marginLeft: "2.4px", marginRight: "2.4px" }], { duration: 520 });
     run(logo, [{ opacity: 0, transform: "rotate(43.88deg) scale(0.8)" }, { opacity: 1, transform: "rotate(43.88deg)" }], { duration: 420, delay: 160 });
     await open; await wait(200);
     await run(logo, [{ opacity: 1, transform: "rotate(43.88deg)" }, { opacity: 1, transform: "rotate(0deg)" }], { duration: 760, easing: INOUT });

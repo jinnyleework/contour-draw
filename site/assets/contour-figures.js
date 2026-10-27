@@ -693,6 +693,58 @@ const carousel = {
   },
 };
 
+/* ===== figures/cassette-deck.js ===== */
+/*
+ * A cassette deck lying flat: a body with a well holding a cassette, the cassette's two windows showing its reels, and
+ * a row of five piano keys along the front. Move across it and it plays: the play key goes down, both reels turn, and
+ * the tape winds from the left reel onto the right, one pack shrinking as the other grows. At rest the keys are up
+ * and the tape is all on the left. The deck and cassette are cut once; the play key only moves; the reels are cut
+ * again as they turn and wind.
+ */
+const DECK_REELS = [-0.18, 0.18], DECK_REEL_Y = 0.02;                   // where the two reels sit
+
+/** a reel: a pack of tape of radius `pack` round a hub with six teeth, turned by `ph` */
+const deckReel = (x, y, z, cx, pack, ph) => {
+  const dx = x - cx, dy = y - DECK_REEL_Y, r = len2(dx, dy), th = Math.atan2(dy, dx) + ph;
+  const tape = Math.max(r - pack, 0.045 - r, Math.abs(z + 0.045) - 0.012);                                         // the pack of tape, round the hub
+  const ring = Math.max(r - 0.045, -(r - (0.026 + 0.007 * Math.cos(6 * th))), Math.abs(z + 0.04) - 0.016);         // a hub with six teeth inside
+  return Math.min(tape, ring);
+};
+
+const cassetteDeck = {
+  T: 4, zr: [-0.14, 0.04], S: 400, zm: -0.05,
+  active: [0, 2.4],                                              // the play key goes down and the tape winds; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the deck
+  hint: "move across the deck to play the tape",
+  parts: [
+    { id: "deck", order: 0, cell: 0.008, box: { x: [-0.72, 0.72], y: [-0.55, 0.55] }, planes: planes(-0.14, 0.02, 0.01), sdf: (x, y, z) => {
+      let d = roundBox(x, y, z + 0.07, 0.56, 0.4, 0.05, 0.02);                                                     // the body, top at z = 0
+      d = subtract(d, Math.max(Math.abs(x) - 0.44, Math.abs(y + 0.02) - 0.27, -0.08 - z));                         // the well the cassette sits in
+      for (let k = 0; k < 5; k++) if (k !== 1) d = Math.min(d, roundBox(x + 0.3 - 0.15 * k, y - 0.34, z - 0.01, 0.055, 0.035, 0.012, 0.008));   // the piano keys, but the play key
+      return d;
+    } },
+    { id: "cassette", order: 1, cell: 0.007, box: { x: [-0.5, 0.5], y: [-0.36, 0.32] }, planes: planes(-0.08, -0.005, 0.01), sdf: (x, y, z) => {
+      let d = roundBox(x, y + 0.02, z + 0.04, 0.4, 0.24, 0.025, 0.012);                                           // the shell
+      for (const cx of DECK_REELS) d = subtract(d, Math.max(len2(x - cx, y - DECK_REEL_Y) - 0.1, -0.04 - z));       // two round windows onto the reels
+      d = subtract(d, roundBox(x, y + 0.2, z, 0.25, 0.03, 0.03, 0.01));                                            // the opening along the bottom edge
+      return d;
+    } },
+    { id: "play", order: 2, box: { x: [-0.25, -0.05], y: [0.22, 0.46] }, planes: planes(-0.01, 0.03, 0.01), sdf: (x, y, z) => roundBox(x + 0.15, y - 0.34, z - 0.01, 0.055, 0.035, 0.012, 0.008) },
+    { id: "reels", order: 3, dynamic: true, cell: 0.005, key: (p) => p.f.toFixed(2) + ":" + p.ph.toFixed(2), box: { x: [-0.32, 0.32], y: [-0.13, 0.17] }, planes: planes(-0.065, -0.025, 0.01), sdf: (x, y, z, { f, ph }) => {
+      const left = 0.095 - 0.045 * f, right = 0.05 + 0.045 * f;                                                     // the tape moves from the left pack to the right
+      return Math.min(deckReel(x, y, z, DECK_REELS[0], left, ph * (0.07 / left)), deckReel(x, y, z, DECK_REELS[1], right, ph * (0.07 / right)));
+    } },
+  ],
+  /**
+   * k, the intensity: how much tape winds across.
+   * 0: a third · 0.5: two thirds · 1: all of it
+   */
+  step(t, abs, k = 0.5) {
+    const wind = byIntensity(k, [0.33, 0.66, 1]), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t)), press = sm(0, 0.3, t) * (1 - sm(2.9, 3.4, t));
+    return { deck: {}, cassette: {}, play: { off: [0, 0, -0.018 * press] }, reels: { prm: { f: Math.round(wind * e * 40) / 40, ph: Math.round(-wind * e * 30 * 25) / 25 } } };
+  },
+};
+
 /* ===== figures/crystal-cluster.js ===== */
 /*
  * A cluster of seven six-sided crystals, each a prism under a pointed tip, standing on a ragged rock. Move up it and
@@ -822,6 +874,73 @@ const funnel = {
       funnel: {}, stand: {}, grain: { prm: { L: q(0.85 - 0.5 * f, 50), ph: q(f * 40, 4) } },
       stream: { prm: f > 0.03 ? { ph: q(f * 40, 4) } : null },
     };
+  },
+};
+
+/* ===== figures/gear-train.js ===== */
+/*
+ * A gear train: four spur gears of different sizes meshed together on a plate, each on its own axle, the larger ones
+ * with round holes through their webs. Move across it and the largest gear turns, and the others turn with it, each
+ * at its own speed and in the right direction, tooth in gap. At rest they are still. The plate and axles are cut once;
+ * the gears are cut again as they turn.
+ */
+const GEAR_M = 0.015;                                                    // the module: a gear's pitch radius is its tooth count times this
+/** each gear: its tooth count, and which gear it meshes with and at what angle from that gear's middle */
+const GEARS = (() => {
+  const list = [{ n: 16, x: 0, y: 0 }], add = (n, from, beta) => {
+    const f = list[from], dist = (f.n + n) * GEAR_M;
+    list.push({ n, x: f.x + dist * Math.cos(beta), y: f.y + dist * Math.sin(beta), from, beta });
+  };
+  add(10, 0, -0.35); add(12, 1, 0.95); add(8, 0, 2.6);
+  const cx = list.reduce((s, g) => s + g.x, 0) / list.length, cy = list.reduce((s, g) => s + g.y, 0) / list.length;
+  return list.map((g) => ({ ...g, x: g.x - cx, y: g.y - cy }));        // centred on the page
+})();
+
+/** every gear's turn, from the first gear's turn: each meshing gear turns the other way, tooth in gap at the contact */
+const gearTurns = (phi0) => {
+  const out = [phi0];
+  for (let k = 1; k < GEARS.length; k++) {
+    const g = GEARS[k], f = GEARS[g.from];
+    out.push(g.beta + Math.PI - Math.PI / g.n + (f.n / g.n) * (g.beta - out[g.from]));
+  }
+  return out;
+};
+
+const gearTrain = {
+  T: 4, zr: [-0.08, 0.12], S: 380, zm: 0.02,
+  active: [0, 2.4],                                              // the gears turn; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the gears
+  hint: "move across the gears to turn them",
+  parts: [
+    { id: "plate", order: 0, box: { x: [-0.75, 0.75], y: [-0.65, 0.65] }, planes: planes(-0.08, 0.12, 0.012), sdf: (x, y, z) => {
+      let d = roundBox(x, y, z + 0.055, 0.6, 0.48, 0.012, 0.02);                                                   // a flat plate
+      for (const g of GEARS) d = Math.min(d, rcyl(len2(x - g.x, y - g.y), z, 0.028, -0.04, 0.1, 0.01));            // an axle for each gear
+      return d;
+    } },
+    { id: "gears", order: 1, dynamic: true, cell: 0.011, key: (p) => p.phi.toFixed(3), box: { x: [-0.7, 0.7], y: [-0.6, 0.6] }, planes: planes(-0.005, 0.075, 0.012), sdf: (x, y, z, { phi }) => {
+      const turns = gearTurns(phi);
+      let d = 1;
+      GEARS.forEach((g, k) => {
+        const dx = x - g.x, dy = y - g.y, r = len2(dx, dy), R = g.n * GEAR_M;
+        if (r > R + 0.04) return;                                                                                 // too far from this gear to matter
+        const th = Math.atan2(dy, dx) - turns[k], tooth = R + 0.022 * clamp(2.2 * Math.cos(g.n * th), -1, 1);       // square-ish teeth round the pitch circle
+        let gd = Math.max(r - tooth, 0.035 - r, Math.abs(z - 0.035) - 0.03);                                     // a toothed disc with a bore for the axle
+        if (g.n >= 12) for (let h = 0; h < 4; h++) {                                                              // round holes through the larger webs, turning with them
+          const ha = turns[k] + (h * Math.PI) / 2 + Math.PI / 4, hr = R * 0.55;
+          gd = Math.max(gd, -(len2(dx - hr * Math.cos(ha), dy - hr * Math.sin(ha)) - R * 0.2));
+        }
+        d = Math.min(d, gd);
+      });
+      return d;
+    } },
+  ],
+  /**
+   * k, the intensity: how far the largest gear turns.
+   * 0: half a turn · 0.5: one turn · 1: two turns
+   */
+  step(t, abs, k = 0.5) {
+    const turns = byIntensity(k, [0.5, 1, 2]), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t));
+    return { plate: {}, gears: { prm: { phi: Math.round(turns * 2 * Math.PI * e * 200) / 200 } } };
   },
 };
 
@@ -1288,6 +1407,47 @@ const pocketWatch = {
   step(t, abs, k = 0.5) {
     const turns = byIntensity(k, [1, 3, 6]), back = sm(3, 4, t);
     return { case: {}, bow: {}, hands: { prm: { a: Math.round((turns * 2 * Math.PI * sm(0, 2.4, t) * (1 - back)) / 0.04) * 0.04 } } };
+  },
+};
+
+/* ===== figures/printer.js ===== */
+/*
+ * A desktop printer: a boxy body with a paper tray leaning up behind it, an output tray in front, a slot across the top
+ * where the print head runs on a rail, and three buttons. Move across it and it prints: the head shuttles back and
+ * forth along the slot while a sheet feeds out of the mouth onto the output tray. At rest the head is parked at the
+ * left and the tray is empty. The body is cut once; the head and the sheet are rigid and only move.
+ */
+const PRINT_SHEET_Z = 0.06;                                              // the height the sheet travels at
+
+const printer = {
+  T: 4, zr: [0, 0.52], S: 380, zm: 0.16,
+  active: [0, 2.4],                                              // the head shuttles and the sheet feeds out; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the printer
+  hint: "move across the printer to print a page",
+  parts: [
+    { id: "body", order: 0, cell: 0.009, box: { x: [-0.62, 0.62], y: [-0.62, 0.7] }, planes: planes(0, 0.52, 0.015), sdf: (x, y, z) => {
+      let d = roundBox(x, y, z - 0.12, 0.46, 0.28, 0.09, 0.03);                                                    // the body
+      d = subtract(d, Math.max(Math.abs(x) - 0.4, Math.abs(y) - 0.06, 0.13 - z));                                  // the slot the head runs in, open on top
+      d = subtract(d, Math.max(Math.abs(x) - 0.34, Math.abs(z - PRINT_SHEET_Z) - 0.022, 0.12 - y));                // the mouth the sheet comes out of
+      d = Math.min(d, rcyl(len2(y + 0.03, z - 0.16), x, 0.012, -0.4, 0.4, 0.004));                                 // the rail in the slot
+      d = Math.min(d, roundBox(x, y - 0.43, z - 0.012, 0.32, 0.13, 0.006, 0.006));                                 // the output tray
+      const w = (y + 0.28) * 0.82 + (z - 0.22) * 0.57, s = -(y + 0.28) * 0.57 + (z - 0.22) * 0.82;                // the paper tray, leaning up behind
+      d = Math.min(d, Math.max(Math.abs(w) - 0.025, Math.abs(x) - 0.33, -s, s - 0.32));
+      for (const bx of [0.24, 0.31, 0.38]) d = Math.min(d, rcyl(len2(x - bx, y - 0.19), z, 0.022, 0.2, 0.25, 0.008));   // three buttons
+      return d;
+    } },
+    { id: "head", order: 1, cell: 0.007, box: { x: [-0.45, -0.15], y: [-0.12, 0.12] }, planes: planes(0.13, 0.26, 0.01), sdf: (x, y, z) =>
+      Math.min(roundBox(x + 0.3, y, z - 0.18, 0.04, 0.03, 0.035, 0.012), rcyl(len2(x + 0.3, y), z, 0.02, 0.21, 0.245, 0.006)) },   // a cartridge on the rail, its cap
+    { id: "sheet", order: 2, box: { x: [-0.4, 0.4], y: [-0.32, 0.22] }, planes: planes(PRINT_SHEET_Z - 0.01, PRINT_SHEET_Z + 0.01, 0.01), sdf: (x, y, z) =>
+      Math.max(roundBox(x, y + 0.05, 0, 0.29, 0.19, 0, 0.01), Math.abs(z - PRINT_SHEET_Z) - 0.006) },                // a flat sheet, inside the body at rest
+  ],
+  /**
+   * k, the intensity: how much of the page comes out, and how many passes the head makes.
+   * 0: a third of the page, two passes · 0.5: most of it, four · 1: all of it, six
+   */
+  step(t, abs, k = 0.5) {
+    const feed = byIntensity(k, [0.18, 0.32, 0.42]), passes = Math.round(byIntensity(k, [2, 4, 6])), e = sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t));
+    return { body: {}, head: { off: [0.3 - 0.3 * Math.cos(2 * Math.PI * passes * e), 0, 0] }, sheet: { off: [0, feed * e, 0] } };
   },
 };
 
@@ -1764,6 +1924,70 @@ const toaster = {
   },
 };
 
+/* ===== figures/typewriter.js ===== */
+/*
+ * A typewriter: a low body with three rows of round keys on posts, a half-round basket of typebars lying in a well
+ * behind them, and a carriage at the back with a platen roller, two knobs, a return lever and a sheet of paper
+ * standing up behind it. Move across it and it types: one typebar after another swings up out of the basket to strike
+ * the platen, and the carriage steps to the left with every letter. At rest the bars lie in the basket and the
+ * carriage is at the right. The body is cut once; the carriage is rigid and only slides; the typebars are cut again
+ * as they strike.
+ */
+const TYPE_C = [0, -0.08], TYPE_BARS = 9, TYPE_FIRST = 0.25, TYPE_STEP = (Math.PI - 0.5) / (TYPE_BARS - 1);   // the middle of the basket, and where the bars lie round it
+const TYPE_ORDER = [3, 7, 1, 5, 8, 0, 4, 2, 6];                         // the order the bars strike in
+
+/** the distance to a rod between two points in space */
+const typeRod = (x, y, z, [ax, ay, az], [bx, by, bz], r) => {
+  const dx = bx - ax, dy = by - ay, dz = bz - az, t = clamp(((x - ax) * dx + (y - ay) * dy + (z - az) * dz) / (dx * dx + dy * dy + dz * dz), 0, 1);
+  return Math.hypot(x - ax - t * dx, y - ay - t * dy, z - az - t * dz) - r;
+};
+
+/** typebar m, swung up by angle a: from its pivot on the rim of the basket, in toward the middle and up toward the platen */
+const typeBar = (x, y, z, m, a) => {
+  const ang = TYPE_FIRST + m * TYPE_STEP, px = TYPE_C[0] + 0.19 * Math.cos(ang), py = TYPE_C[1] + 0.19 * Math.sin(ang);
+  const ix = -Math.cos(ang), iy = -Math.sin(ang), L = 0.25;
+  return typeRod(x, y, z, [px, py, 0.105], [px + L * Math.cos(a) * ix, py + L * Math.cos(a) * iy, 0.105 + L * Math.sin(a)], 0.016);
+};
+
+const typewriter = {
+  T: 4, zr: [-0.02, 0.68], S: 360, zm: 0.22,
+  active: [0, 2.4],                                              // it types a line; the pose at 0 is the rest pose
+  drive: (x) => clamp((x - 130) / 340, 0, 1),                    // across the typewriter
+  hint: "move across the typewriter to type",
+  parts: [
+    { id: "body", order: 0, cell: 0.008, box: { x: [-0.65, 0.65], y: [-0.5, 0.48] }, planes: planes(-0.02, 0.3, 0.01), sdf: (x, y, z) => {
+      let d = Math.min(roundBox(x, y, z - 0.05, 0.5, 0.36, 0.04, 0.03), roundBox(x, y + 0.3, z - 0.16, 0.48, 0.08, 0.1, 0.03));   // a low base, and a raised back that carries the carriage
+      d = subtract(d, Math.max(len2(x - TYPE_C[0], y - TYPE_C[1]) - 0.22, 0.09 - z, -0.2 - y));                                  // the well the typebars lie in
+      for (let r = 0; r < 3; r++) for (let k = 0; k < 9; k++) {                                                                  // three rows of keys, each row higher and set back
+        const kx = -0.34 + 0.085 * k + 0.02 * r, ky = 0.32 - 0.08 * r, top = 0.17 + 0.035 * r, rr = len2(x - kx, y - ky);
+        d = Math.min(d, rcyl(rr, z, 0.032, top - 0.025, top, 0.012), rcyl(rr, z, 0.013, 0.1, top - 0.02, 0));
+      }
+      return d;
+    } },
+    { id: "bars", order: 1, dynamic: true, cell: 0.008, key: (p) => p.j + ":" + p.a.toFixed(2), box: { x: [-0.25, 0.25], y: [-0.3, 0.14] }, planes: planes(0.085, 0.35, 0.012), sdf: (x, y, z, { j, a }) => {
+      const m = clamp(Math.round((Math.atan2(y - TYPE_C[1], x - TYPE_C[0]) - TYPE_FIRST) / TYPE_STEP), 0, TYPE_BARS - 1);       // only the nearest resting bar can matter
+      const flat = m === j && a > 0.02 ? 1 : typeBar(x, y, z, m, 0);
+      return Math.min(flat, a > 0.02 ? typeBar(x, y, z, j, a) : 1);                                                               // and the bar that is striking
+    } },
+    { id: "carriage", order: 2, cell: 0.007, box: { x: [-0.55, 0.9], y: [-0.62, 0.0] }, planes: planes(0.27, 0.68, 0.01), sdf: (x, y, z) => {
+      const cx = x - 0.18, r = len2(y + 0.24, z - 0.36);
+      let d = Math.min(rcyl(r, cx, 0.07, -0.42, 0.42, 0.02), rcyl(r, Math.abs(cx), 0.09, 0.42, 0.5, 0.02));                      // the platen, and a knob at each end
+      const w = (y + 0.26) * 0.707 + (z - 0.42) * 0.707, s = -(y + 0.26) * 0.707 + (z - 0.42) * 0.707;                            // the paper, leaning back from the platen
+      d = Math.min(d, Math.max(Math.abs(w) - 0.008, Math.abs(cx) - 0.27, -s, s - 0.3));
+      return Math.min(d, typeRod(cx, y, z, [-0.47, -0.24, 0.4], [-0.43, -0.06, 0.5], 0.016));                                    // and the return lever
+    } },
+  ],
+  /**
+   * k, the intensity: how many letters it types, and so how far the carriage travels.
+   * 0: four · 0.5: eight · 1: twelve
+   */
+  step(t, abs, k = 0.5) {
+    const letters = Math.round(byIntensity(k, [4, 8, 12])), q = letters * sm(0, 2.4, t) * (1 - sm(2.9, 3.8, t)), n = Math.floor(q);
+    const a = n < letters ? 1.3 * Math.sin(Math.PI * (q - n)) : 0;                                                              // the bar swings up and back for each letter
+    return { body: {}, carriage: { off: [-0.035 * q, 0, 0] }, bars: { prm: { j: TYPE_ORDER[n % TYPE_BARS], a: Math.round(a * 20) / 20 } } };
+  },
+};
+
 /* ===== figures/umbrella.js ===== */
 /*
  * An umbrella standing on its tip, handle down: a thin shaft with a crooked handle, and a canopy that rides up the
@@ -1986,7 +2210,7 @@ const windmill = {
 
 /* ===== figures/index.js ===== */
 /** every figure the page offers, in the order of its buttons */
-const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack };
+const SCENES = { rocket, camera, binoculars, lightbulb, "record player": recordPlayer, lighthouse, toaster, "vault door": vaultDoor, carousel, "pocket watch": pocketWatch, telescope, "jack in the box": jackInTheBox, windmill, gyroscope, umbrella, "periscope submarine": periscopeSubmarine, seedling, "drawer chest": drawerChest, "bellows camera": bellowsCamera, percolator, terrain, volcano, "ripple tank": rippleTank, "tile pyramid": tilePyramid, "spiral stair": spiralStair, "ring tower": ringTower, funnel, hourglass, whirlpool, "crystal cluster": crystalCluster, honeycomb, "card fan": cardFan, "tile stack": tileStack, typewriter, printer, "gear train": gearTrain, "cassette deck": cassetteDeck };
 
 window.Contour = { createPlayer, SCENES, RULE, VIEW, SPLIT, MOTION, LEVELS, GAP_RANGE };
 })();
