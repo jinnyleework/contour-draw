@@ -73,12 +73,20 @@
   // the library's sections, in order; a figure goes on one shelf by its name in the engine (engine/figures/index.js).
   // A figure the shelves do not name goes on the last one, so a new figure shows up without editing this page.
   const SHELVES = [
-    { id: "machines", title: "machines", sub: "things with a mechanism: the cursor runs what the real one does",
-      figures: ["rocket", "camera", "binoculars", "lightbulb", "record player", "lighthouse", "toaster", "vault door", "telescope", "periscope submarine", "bellows camera", "percolator", "windmill", "gyroscope", "typewriter", "printer", "gear train", "cassette deck"] },
-    { id: "keepsakes", title: "keepsakes", sub: "small things that open, wind, grow or spin up under the hand",
-      figures: ["carousel", "pocket watch", "jack in the box", "umbrella", "seedling", "drawer chest"] },
-    { id: "forms", title: "forms", sub: "landscapes and shapes for ideas: rising, draining, twisting, stacking",
-      figures: ["terrain", "volcano", "ripple tank", "tile pyramid", "spiral stair", "ring tower", "funnel", "hourglass", "whirlpool", "crystal cluster", "honeycomb", "card fan", "tile stack"] },
+    { id: "light", title: "light and lenses", sub: "things that look, shine or project: the cursor focuses, sweeps or switches them on",
+      figures: ["camera", "bellows camera", "binoculars", "telescope", "periscope submarine", "lighthouse", "lightbulb", "film projector"] },
+    { id: "sound", title: "sound and time", sub: "things that play, keep the beat or run down",
+      figures: ["record player", "cassette deck", "mixing desk", "metronome", "pocket watch", "hourglass"] },
+    { id: "print", title: "print and paper", sub: "things that type, press, print and count out",
+      figures: ["typewriter", "printer", "letterpress", "cash register", "card fan"] },
+    { id: "home", title: "around the house", sub: "everyday things that pop, brew, stitch, open and unfold",
+      figures: ["toaster", "percolator", "sewing machine", "drawer chest", "umbrella", "vault door"] },
+    { id: "motion", title: "motion", sub: "things that turn, spin, wind up and take off",
+      figures: ["windmill", "gear train", "gyroscope", "carousel", "orrery", "jack in the box", "rocket"] },
+    { id: "nature", title: "land and water", sub: "ground that rises, water that ripples and drains, things that grow",
+      figures: ["terrain", "volcano", "ripple tank", "whirlpool", "seedling", "crystal cluster", "honeycomb"] },
+    { id: "forms", title: "forms", sub: "plain shapes for ideas: stacking, climbing, narrowing",
+      figures: ["tile pyramid", "tile stack", "ring tower", "spiral stair", "funnel"] },
   ];
   const { SCENES, RULE, VIEW, SPLIT, MOTION } = window.Contour;
   const placed = new Set(SHELVES.flatMap((s) => s.figures));
