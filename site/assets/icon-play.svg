@@ -1,0 +1,6 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#171717" stroke-width="1.1">
+  <!-- play: the same slice turned through a sweep, loops traced like an oscillon's -->
+  <ellipse cx="16.00" cy="16.00" rx="11.00" ry="3.20"/>
+  <ellipse cx="16.00" cy="16.00" rx="11.00" ry="3.20" transform="rotate(60 16 16)"/>
+  <ellipse cx="16.00" cy="16.00" rx="11.00" ry="3.20" transform="rotate(120 16 16)"/>
+</svg>

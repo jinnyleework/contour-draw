@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>play · contour draw</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="site.css">
+<script>{ let theme; try { theme = localStorage.getItem("theme"); } catch {} document.documentElement.dataset.theme = theme || "dark"; }</script>
+<script>
+  // the page starts empty and draws itself in (assets/reveal.js); if that never runs, show it as it is
+  if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.documentElement.classList.add("reveal");
+    setTimeout(() => window.revealed || document.documentElement.classList.remove("reveal"), 3000);
+  }
+</script>
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="index.html" aria-label="Home"><img src="assets/logo-slices.svg" alt=""></a>
+  <nav aria-label="Main">
+    <a href="library.html">library</a>
+    <a href="play.html" aria-current="page">play</a>
+    <a href="skill.html">skill</a>
+    <a href="info.html">start</a>
+    <a class="tech" href="technicals.html">technicals</a>
+  </nav>
+</header>
+<main class="lib">
+  <div class="lib-intro">
+    <h1><span><img src="assets/icon-play.svg" alt=""></span>play</h1>
+    <p>the same figures drawn on two other engines: oscillon traces them as clouds of points, stitch sews them in crosses. Hover one to drive it</p>
+  </div>
+  <label class="autoplay"><input class="switch" type="checkbox" id="play" role="switch"> auto-play animations</label>
+  <div class="lib-main">
+    <nav class="lib-toc" aria-label="Sections"><ul id="toc"></ul></nav>
+    <div class="lib-body" id="shelves"></div>
+  </div>
+</main>
+<div class="scrim" id="scrim"></div>
+<aside class="panel" id="panel" tabindex="-1" aria-label="Figure details" aria-hidden="true" inert>
+  <div class="panel-head"><span class="no" id="p-no"></span><span><b id="p-name"></b><span class="read" id="p-read">rest</span></span><button class="panel-x" id="p-close" type="button" aria-label="Close">×</button></div>
+  <div class="panel-fig" id="p-fig"></div>
+  <p class="panel-means" id="p-means"></p>
+  <div class="panel-body"></div>
+  <div class="panel-foot">
+    <div><em>drawing</em><span id="t-name"></span></div>
+    <div><em>engine</em><span id="t-engine"></span></div>
+    <label class="tog"><em>play</em><span><input type="checkbox" id="f-play" role="switch"><b>off</b></span></label>
+    <label class="tog"><em>theme</em><span><input type="checkbox" id="f-dark" role="switch"><b id="t-theme">light</b></span></label>
+  </div>
+</aside>
+<script src="assets/play-figures.js"></script>
+<script src="assets/pull.js"></script>
+<script src="assets/theme.js"></script>
+<script>
+(() => {
+  // one section per engine (assets/play-figures.js, built by site/build-play.mjs); its figures first, then the
+  // studies. A figure the order does not name goes last, so a new one shows up without editing this page.
+  const SHELVES = [
+    { id: "oscillon", title: "oscillon", sub: "a cloud of points on every surface, seen through, after Ben Laposky's oscillons: rims trace themselves brightest" },
+    { id: "stitch", title: "stitch", sub: "solid fields of small crosses in one thread, the edges left as gaps of bare ground" },
+  ];
+  const ORDER = ["lightbulb", "rocket", "tiles", "sphere", "cube", "prism"];
+  const $ = (id) => document.getElementById(id);
+  const shelves = $("shelves"), toc = $("toc"), handles = [];
+  const theme = () => (document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+  let open = null;   // { engine, name, tile, handle }
+
+  const two = (n) => String(n).padStart(2, "0");
+  const CROPS = '<i class="crop tl"></i><i class="crop tr"></i><i class="crop bl"></i><i class="crop br"></i>';
+  let total = 0;
+  SHELVES.forEach((s, si) => {
+    const { mount, figures } = Play[s.id];
+    const names = Object.keys(figures).sort((a, b) => ((ORDER.indexOf(a) + 1) || 99) - ((ORDER.indexOf(b) + 1) || 99));
+    total += names.length;
+    const sec = document.createElement("section");
+    sec.className = "shelf"; sec.id = s.id;
+    sec.innerHTML = `<h2><span class="no">${two(si + 1)}</span><span>${s.title}</span><span class="count">${two(names.length)} figures</span><small>${s.sub}</small></h2><div class="tiles"></div>`;
+    const tiles = sec.querySelector(".tiles");
+    names.forEach((name, fi) => {
+      const tile = document.createElement("article");
+      tile.className = "tile is-filled";
+      tile.tabIndex = 0;
+      tile.innerHTML = `<span class="read">rest</span><div class="fig"></div>${CROPS}<span class="name"></span><span class="fno">${two(si + 1)}.${two(fi + 1)}</span>`;
+      tile.querySelector(".name").textContent = name;
+      tiles.appendChild(tile);
+      const out = tile.querySelector(".read");
+      handles.push(mount(tile.querySelector(".fig"), figures[name], { fit: true, theme: theme(), onRead: (t) => (out.textContent = t === "rest" ? "rest" : "live") }));
+      tile.addEventListener("click", () => show(s.id, name, tile));
+      tile.addEventListener("keydown", (e) => { if (e.key === "Enter") show(s.id, name, tile); });
+    });
+    if (names.length % 2) tiles.insertAdjacentHTML("beforeend", `<div class="tile is-empty" aria-hidden="true">${CROPS}</div>`);
+    shelves.appendChild(sec);
+    toc.insertAdjacentHTML("beforeend", `<li><a href="#${s.id}">${s.title}</a></li>`);
+  });
+
+  shelves.insertAdjacentHTML("beforeend", `<footer class="tblock">
+    <div><em>drawing</em>play</div><div><em>sheet</em>02 / 05</div><div><em>figures</em>${two(total)}</div><div><em>scale</em>1 : 1</div>
+    <div><em>project</em>contour draw</div><div><em>engines</em>${SHELVES.length}</div><div><em>units</em>px</div><div><em>formats</em>svg · canvas</div>
+  </footer>`);
+
+  // the section list follows the scroll, and inks in the stretch of the rule being read, as the library's does
+  const links = [...toc.querySelectorAll("a")];
+  const mark = (id) => links.forEach((a) => a.setAttribute("aria-current", String(a.hash === "#" + id)));
+  mark(SHELVES[0].id);
+  const io = new IntersectionObserver((es) => es.forEach((e) => e.isIntersecting && mark(e.target.id)), { rootMargin: "-30% 0px -60% 0px" });
+  document.querySelectorAll(".shelf").forEach((el) => io.observe(el));
+  const secs = [...document.querySelectorAll(".shelf")], items = [...toc.children];
+  let queued = false;
+  const progress = () => {
+    queued = false;
+    const at = innerHeight * 0.3, tops = secs.map((s) => s.getBoundingClientRect().top);
+    const i = Math.max(0, tops.findLastIndex((t) => t <= at));
+    const end = secs[i + 1] ? tops[i + 1] : secs[i].getBoundingClientRect().bottom;
+    const p = Math.max(0, Math.min(1, (at - tops[i]) / (end - tops[i])));
+    const tick = (li) => li.offsetTop + li.offsetHeight / 2;
+    const from = tick(items[i]), to = items[i + 1] ? tick(items[i + 1]) : toc.offsetHeight;
+    toc.style.setProperty("--from", `${from}px`);
+    toc.style.setProperty("--to", `${from + (to - from) * p}px`);
+  };
+  addEventListener("scroll", () => { if (!queued) { queued = true; requestAnimationFrame(progress); } }, { passive: true });
+  addEventListener("resize", progress);
+  progress();
+
+  // auto-play: every tile's unseen hand walks its parts; off, they wait for the cursor again
+  const play = $("play");
+  play.addEventListener("change", () => handles.forEach((h) => h.play(play.checked)));
+
+  /* ---- the details panel: the figure large, with its own play and theme switches ---- */
+
+  const panel = $("panel"), host = $("p-fig");
+  function show(engine, name, tile) {
+    close(false);
+    const fig = Play[engine].figures[name];
+    open = { engine, name, tile };
+    tile.classList.add("is-open");
+    $("p-name").textContent = $("t-name").textContent = name; $("p-no").textContent = tile.querySelector(".fno").textContent;
+    $("t-engine").textContent = engine; $("p-means").textContent = fig.means ?? ""; $("p-read").textContent = "rest";
+    open.handle = Play[engine].mount(host, fig, { fit: true, theme: $("f-dark").checked ? "dark" : "light", onRead: (t) => ($("p-read").textContent = t === "rest" ? "rest" : "live") });
+    open.handle.play($("f-play").checked);
+    panel.inert = false; panel.setAttribute("aria-hidden", "false");
+    document.body.classList.add("has-panel");
+    panel.focus({ preventScroll: true });
+  }
+  function close(restore = true) {
+    if (!open) return;
+    open.handle.destroy();
+    open.tile.classList.remove("is-open");
+    if (restore) open.tile.focus({ preventScroll: true });
+    open = null;
+    panel.inert = true; panel.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("has-panel");
+  }
+  $("p-close").addEventListener("click", () => close());
+  $("scrim").addEventListener("click", () => close());
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && open) close(); });
+
+  $("f-play").addEventListener("change", (e) => { e.target.nextElementSibling.textContent = e.target.checked ? "on" : "off"; open?.handle.play(e.target.checked); });
+  $("f-dark").addEventListener("change", (e) => { const t = e.target.checked ? "dark" : "light"; $("t-theme").textContent = t; host.classList.toggle("is-dark", e.target.checked); open?.handle.theme(t); });
+  // the tiles and the panel's dark switch follow the site's light pull
+  const follow = (t) => {
+    handles.forEach((h) => h.theme(t));
+    const d = $("f-dark");
+    if (d.checked !== (t === "dark")) { d.checked = t === "dark"; d.dispatchEvent(new Event("change")); }
+  };
+  follow(theme());
+  addEventListener("themechange", (e) => follow(e.detail));
+})();
+</script>
+<script src="assets/reveal.js"></script>
+</body>
+</html>
