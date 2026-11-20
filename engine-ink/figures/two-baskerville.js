@@ -1,0 +1,17 @@
+import { driveUp } from "../src/figure.js";
+
+/* two-baskerville: traced from two-baskerville.png by tools/trace.mjs (--dark 0.45 --mid 0.45 --size 700 --clean 0 --frame).
+ * Dark areas are solid ink, middle tones are hatched, all in one ink. A still. Retrace rather than edit the masks. */
+const twoBaskervilleArea = [-0.8500, 0.8500, -0.8500, 0.8500];
+const TWO_BASKERVILLE_SOLID = { area: twoBaskervilleArea, mask: "jg.jg.2oej.l.io.z.ic.1a.i1.1j.hu.1q.hm.1x.hg.23.hb.27.h6.2d.h1.2h.gx.2l.gt.2p.gp.2t.gl.x.f.1l.gi.r.t.1g.ge.p.11.1e.ga.o.17.1c.g8.m.1d.1b.g4.l.1j.1a.g1.k.1n.19.fy.k.1r.19.fv.k.1u.18.fs.k.1x.18.fq.k.20.18.fn.j.24.17.fl.j.26.17.fi.k.28.17.fg.k.2b.17.fd.k.2d.17.fb.k.2f.17.f9.k.2h.17.f7.k.2j.17.f5.k.2l.17.f3.k.2n.17.f1.k.2p.16.f1.k.2q.16.ez.k.2s.16.ex.k.2u.16.ev.l.2v.15.eu.l.2w.16.et.k.2y.16.er.l.2z.16.ep.l.30.16.ep.k.32.16.en.l.33.15.en.k.34.16.el.l.35.16.ej.l.36.16.ej.l.37.16.eh.l.38.16.eh.l.39.16.eg.l.39.16.ef.l.3b.16.ee.l.3b.16.ed.l.3d.15.ed.l.3d.16.eb.m.3d.16.eb.m.3e.16.ea.l.3f.16.e9.m.3f.16.e9.m.3g.16.e8.m.3g.16.e8.l.3h.16.e7.m.3h.17.e6.m.3i.16.e6.m.3i.16.e6.m.3i.16.e5.n.3i.17.e4.n.3j.16.e4.n.3j.16.e4.n.3j.16.e4.n.3j.16.e4.n.3j.17.e3.n.3k.16.e2.o.3k.16.e2.o.3k.16.e2.o.3k.16.e2.o.3k.16.e2.o.3k.17.e1.o.3k.17.e1.o.3k.17.e1.o.3l.16.e1.p.3k.16.e1.p.3k.16.e1.p.3k.16.e1.p.3k.16.e1.q.3j.16.e1.q.3j.16.e1.q.3j.16.e1.r.3i.16.e1.r.3i.16.e1.s.3h.16.e1.s.3h.16.e1.t.3g.16.e1.t.3g.16.e1.u.3f.16.e2.t.3f.16.e2.u.3e.16.e2.v.3d.16.e2.v.3d.16.e2.w.3c.16.e2.x.3b.16.e3.x.3a.16.e3.y.39.16.e3.z.38.16.e3.10.37.16.e4.10.36.16.e4.11.35.16.e4.12.34.16.e5.13.32.15.e6.14.31.15.e6.15.30.15.e7.15.2z.15.e7.17.2w.16.e7.18.2v.15.e9.18.2u.15.e9.19.2t.15.ea.18.2t.15.ea.19.2s.15.eb.18.2s.15.ec.16.2s.15.ed.16.2s.15.ee.14.2t.15.ee.14.2t.15.ef.12.2u.14.eh.10.2u.15.ei.z.2u.15.ei.y.2v.14.ek.w.2w.14.el.u.2x.14.em.s.2x.14.eo.q.2y.14.ep.o.2z.14.eq.l.31.13.es.j.31.14.et.h.32.14.eu.e.34.13.ex.a.35.14.ez.6.37.14.ic.13.ic.14.ic.13.id.13.ic.13.id.13.id.12.id.13.id.13.id.12.id.13.id.12.id.12.ie.12.ie.11.ie.12.ie.11.ie.12.ie.11.ie.11.if.11.ie.11.if.10.if.11.if.10.if.10.ig.z.ig.10.ig.z.ig.z.ih.y.ih.z.ih.y.ih.y.ih.y.ii.y.ih.y.ii.x.ii.x.ii.x.ij.x.ii.x.ij.w.ij.w.ij.w.ik.v.ik.w.ij.w.ik.v.ik.v.ik.v.il.u.il.u.il.v.il.u.il.u.il.u.im.t.im.t.im.t.im.t.in.s.in.t.im.t.in.s.in.s.in.s.in.s.io.r.io.r.io.r.io.r.io.r.ip.q.ip.q.ip.r.io.r.ip.q.ip.q.ip.q.ip.q.ip.q.iq.p.iq.p.iq.p.iq.p.iq.p.ir.o.ir.o.ir.o.ir.o.ir.o.ir.o.is.n.is.n.is.n.is.n.is.n.is.n.is.n.it.m.it.m.it.m.it.m.it.m.it.m.it.m.it.m.iu.l.iu.l.iu.l.iu.l.iu.l.iu.l.iu.l.iu.l.iu.l.iu.l.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iv.k.iw.j.iw.j.iw.j.iw.j.iw.j.iw.j.iw.j.iw.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.i.ix.h.iy.h.iy.h.iy.h.iy.h.iy.h.iy.h.iy.h.iy.h.iy.g.iz.g.iz.g.iz.g.iz.g.iy.h.iy.g.iz.g.iz.g.iz.h.iy.4y.eh.4z.eg.50.ef.50.ef.51.ed.53.ec.54.eb.54.eb.55.ea.56.e9.57.e7.58.e7.59.e6.5a.e5.5b.e5.5a.e6.5a.e6.5a.e6.5a.e6.59.e7.59.e7.59.e7.59.e7.58.e8.58.e8.58.e8.58.e8.57.e9.57.e9.57.is.o.iw.j.iy.i.iz.h.j0.g.j0.f.j1.f.j1.f.j1.e.j2.e.j2.e.j2.e.j2.d.j3.d.j3.d.j3.d.j3.c.j4.c.j3.d.j3.d.j3.c.j4.c.j3.d.j3.d.j3.c.j4.c.2bxe" };
+
+export const twoBaskerville = {
+  T: 4, active: [0, 1], S: 300, hint: "two baskerville",
+  drive: driveUp,
+  shapes: [
+    { id: "ink", ink: "black", bitmap: TWO_BASKERVILLE_SOLID },
+  ],
+  step() {
+    return {};                                                            // a still: nothing moves
+  },
+};

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ink engine</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0b0b0c; color: #8a8a90; font: 13px/1.4 ui-sans-serif, system-ui, sans-serif; min-height: 100vh; display: grid; place-items: center; }
+  main { width: min(600px, 100vw); padding: 16px; box-sizing: border-box; }
+  svg { width: 100%; height: auto; aspect-ratio: 1 / 1; display: block; border-radius: 6px; }
+  .bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  button { font: inherit; padding: 8px 10px; background: none; color: #8a8a90; border: 1px solid #29292d; border-radius: 6px; cursor: pointer; }
+  button[aria-pressed="true"] { color: #e6e6e6; border-color: #5d5d64; }
+  label { display: flex; gap: 6px; align-items: center; }
+  input[type="range"] { width: 120px; }
+  output { min-width: 3em; font-variant-numeric: tabular-nums; }
+  #hint { margin-top: 8px; min-height: 1.4em; }
+</style>
+</head>
+<body>
+<main>
+  <svg id="art" viewBox="0 0 600 600" role="img" aria-label="scratchy ink drawing"></svg>
+  <div id="hint"></div>
+  <div class="bar" id="objects"></div>
+  <div class="bar" id="look"></div>
+</main>
+<script>/*ENGINE*/
+
+/* ---------- the page ---------- */
+const svg = document.getElementById("art"), hint = document.getElementById("hint");
+const player = createPlayer(svg, SCENES);
+const button = (parent, text, onclick) => { const b = document.createElement("button"); b.textContent = text; b.onclick = onclick; parent.appendChild(b); return b; };
+const updateHint = () => { hint.textContent = player.hint; };
+const show = (name) => {
+  player.show(name);
+  objects.querySelectorAll("button[data-o]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.o === name)));
+  updateHint();
+};
+const objects = document.getElementById("objects");
+for (const name of player.names()) button(objects, name, () => show(name)).dataset.o = name;
+
+/* a row of sliders over one settings object: they edit it in place and the player reads it on the next frame */
+const slider = (parent, target, key, label, [min, max, step]) => {
+  const l = document.createElement("label"), i = document.createElement("input"), o = document.createElement("output");
+  Object.assign(i, { type: "range", min, max, step, value: target[key] });
+  o.textContent = (+target[key]).toFixed(2);
+  i.oninput = () => { target[key] = +i.value; o.textContent = (+i.value).toFixed(2); player.redraw(); };
+  l.append(label, i, o); parent.appendChild(l);
+};
+const look = document.getElementById("look");
+for (const [key, label, range] of RULE_CONTROLS) slider(look, RULE, key, label, range);
+
+window.player = player;
+show(player.current);
+</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "visualiser-engine-ink",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node --test test/*.test.js", "build": "node tools/build.mjs" }
+}

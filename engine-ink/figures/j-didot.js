@@ -1,0 +1,17 @@
+import { driveUp } from "../src/figure.js";
+
+/* j-didot: traced from j-didot.png by tools/trace.mjs (--dark 0.45 --mid 0.45 --size 700 --clean 0 --frame --frame-size 700).
+ * Dark areas are solid ink, middle tones are hatched, all in one ink. A still. Retrace rather than edit the masks. */
+const jDidotArea = [-0.8500, 0.8500, -0.8500, 0.8500];
+const J_DIDOT_SOLID = { area: jDidotArea, mask: "jg.jg.27mf.4n.et.4n.et.4n.et.4n.et.4n.et.4n.et.4n.gf.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1g.i0.1f.i1.1f.i1.1f.i1.1f.i1.1f.i1.1f.fs.7.22.1f.fl.k.1w.1f.fh.r.1t.1f.ff.u.1s.1f.fd.y.1q.1f.fb.12.1o.1f.fa.14.1n.1f.f9.16.1m.1f.f7.19.1l.1f.f6.1b.1k.1e.f6.1d.1j.1e.f6.1e.1i.1e.f5.1f.1i.1e.f4.1h.1h.1e.f3.1i.1h.1e.f3.1i.1h.1e.f2.1k.1g.1e.f2.1k.1g.1d.f2.1l.1g.1d.f2.1m.1f.1d.f1.1n.1f.1d.f1.1n.1f.1d.f1.1n.1f.1c.f2.1n.1f.1c.f1.1o.1f.1c.f1.1o.1f.1c.f1.1o.1f.1c.f1.1o.1f.1c.f0.1p.1f.1b.f1.1p.1f.1b.f1.1o.1g.1b.f1.1o.1g.1b.f1.1o.1g.1a.f2.1o.1g.1a.f2.1n.1h.1a.f2.1n.1h.19.f3.1n.1h.19.f3.1m.1i.19.f3.1m.1i.18.f4.1l.1j.18.f4.1l.1j.18.f4.1l.1j.17.f6.1j.1j.18.f6.1j.1j.18.f6.1j.1j.17.f7.1i.1k.17.f7.1i.1k.16.f9.1h.1k.16.f9.1g.1l.15.fa.1g.1l.15.fa.1f.1m.14.fc.1e.1m.14.fc.1e.1l.14.fe.1d.1l.14.fe.1d.1l.13.ff.1c.1m.13.fg.1b.1m.12.fh.1b.1l.12.fj.1a.1l.12.fk.19.1l.11.fl.19.1l.10.fn.18.1k.11.fn.18.1k.10.fp.17.1k.z.fr.16.1j.z.ft.15.1j.z.fu.14.1j.y.fv.14.1i.y.fx.13.1h.y.fz.13.1g.x.g1.12.1f.x.g3.11.1f.w.g5.10.1e.w.g8.z.1c.w.ga.y.1b.w.gc.y.19.v.gf.y.17.v.gi.w.16.u.gl.x.13.u.go.w.10.u.gs.w.x.u.gv.v.u.u.gy.x.o.v.h3.x.i.w.h7.14.2.11.hb.22.hh.1x.hm.1r.ht.1j.i1.1b.ib.z.ip.f.2mtd" };
+
+export const jDidot = {
+  T: 4, active: [0, 1], S: 300, hint: "j didot",
+  drive: driveUp,
+  shapes: [
+    { id: "ink", ink: "black", bitmap: J_DIDOT_SOLID },
+  ],
+  step() {
+    return {};                                                            // a still: nothing moves
+  },
+};
